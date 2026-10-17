@@ -28,10 +28,38 @@ small, and are marked "StrmQt fork" where they are code:
 - app/src/main/java/com/limelight/Game.java: hooks for remote mode and for
   handing an ended stream back to the launcher.
 - app/src/main/res/xml/preferences.xml: a "StrmQt" settings category.
+- app/src/main/res/values/styles.xml: the app theme takes StrmQt's colours
+  (ground, surfaces, text, amber accent) and dialog theme, so upstream
+  screens match the fork's.
+- app/src/main/AndroidManifest.xml also gives the fork's screens their
+  theme and declares the setup preview's entry, enabled in debug builds
+  only (app/src/debug/res/values/strmqt_bools.xml).
 - app/src/main/res/mipmap-*/ic_launcher*.png, drawable-xhdpi/atv_banner.png,
   drawable/ic_channel.xml and values/ic_launcher_background.xml: the launcher
   icon and TV banner are replaced with artwork rendered from StrmQt's brand
   files (assets/brand in the StrmQt source). The banner wordmark is set in
   Archivo and IBM Plex Mono, both under the SIL Open Font License.
+
+Brand assets and fonts
+----------------------
+
+StrmLight's own screens use StrmQt's look. These files come from, or are
+drawn from, the StrmQt source:
+
+- app/src/main/res/drawable-nodpi/strmqt_symbol.png: StrmQt's aperture
+  symbol, rendered from assets/brand/strmqt-symbol.svg in the StrmQt source.
+- app/src/main/res/drawable-xhdpi/atv_banner.png: the symbol and the
+  StrmLight wordmark, drawn for this fork in the fonts below.
+
+Fonts bundled unmodified in app/src/main/assets/fonts, each under the SIL
+Open Font License, Version 1.1, whose full text is beside it:
+
+- Archivo (Archivo.ttf), Copyright 2020 The Archivo Project Authors.
+  Licence: OFL-Archivo.txt.
+- Public Sans (PublicSans.ttf), Copyright 2015 The Public Sans Project
+  Authors. Licence: OFL-PublicSans.txt.
+- IBM Plex Mono (IBMPlexMono-Regular.ttf, IBMPlexMono-SemiBold.ttf),
+  Copyright 2017 IBM Corp., Reserved Font Name "Plex".
+  Licence: OFL-IBMPlexMono.txt.
 
 docs/strmqt-fork.md describes the behaviour, setup and what has been tested.

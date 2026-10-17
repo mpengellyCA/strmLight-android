@@ -1,9 +1,8 @@
 package com.limelight.strmqt;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -13,7 +12,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.limelight.LimeLog;
 import com.limelight.R;
@@ -31,6 +29,8 @@ import java.security.GeneralSecurityException;
  */
 public final class RemoteInput implements RemoteGestures.Sink {
     private static final long BUTTON_PULSE_MS = 60;
+    /** How long the one-time hold-Back hint stays over the stream. */
+    private static final long HINT_MS = 5000;
 
     private final Activity activity;
     private final ControllerHandler controllerHandler;
@@ -41,7 +41,8 @@ public final class RemoteInput implements RemoteGestures.Sink {
 
     private StrmQtClient client;
     private TextView indicator;
-    private AlertDialog menu;
+    private TextView hint;
+    private Dialog menu;
     private boolean destroyed;
 
     /** Returns null when remote mode is off, which leaves Game exactly as upstream. */
@@ -206,7 +207,7 @@ public final class RemoteInput implements RemoteGestures.Sink {
 
     public void onStreamStarted() {
         if (prefs.takeHoldBackHint()) {
-            Toast.makeText(activity, R.string.strmqt_hold_back_hint, Toast.LENGTH_LONG).show();
+            showHint(activity.getString(R.string.strmqt_hold_back_hint));
         }
     }
 
@@ -238,25 +239,27 @@ public final class RemoteInput implements RemoteGestures.Sink {
             return;
         }
         gestures.cancelAll();
-        CharSequence[] items = {
-                activity.getString(R.string.strmqt_menu_resume),
-                activity.getString(R.string.strmqt_menu_disconnect),
-                activity.getString(R.string.strmqt_menu_settings),
-        };
-        menu = new AlertDialog.Builder(activity)
-                .setTitle(R.string.strmqt_menu_title)
-                .setItems(items, (dialog, which) -> {
-                    if (which == 1) {
-                        StrmQtSession.userDisconnected();
-                        activity.finish();
-                    } else if (which == 2) {
-                        // Leaving the stream ends it, as it does in upstream; coming
-                        // back from the settings reconnects.
-                        activity.startActivity(new Intent(activity, StreamSettings.class));
-                    }
-                })
-                .create();
+        final Dialog dialog = new Dialog(activity, R.style.StrmQtDialog);
+        dialog.setContentView(R.layout.strmqt_menu_dialog);
+        dialog.setTitle(R.string.strmqt_menu_title);
+        ((TextView) dialog.findViewById(R.id.strmqtWordmark)).setText(Brand.wordmark(activity));
+        Brand.applyFonts(dialog.findViewById(android.R.id.content));
+        Brand.unclip(dialog.findViewById(android.R.id.content));
+        dialog.findViewById(R.id.strmqtMenuResume).setOnClickListener(v -> dialog.dismiss());
+        dialog.findViewById(R.id.strmqtMenuDisconnect).setOnClickListener(v -> {
+            dialog.dismiss();
+            StrmQtSession.userDisconnected();
+            activity.finish();
+        });
+        dialog.findViewById(R.id.strmqtMenuSettings).setOnClickListener(v -> {
+            dialog.dismiss();
+            // Leaving the stream ends it, as it does in upstream; coming
+            // back from the settings reconnects.
+            activity.startActivity(new Intent(activity, StreamSettings.class));
+        });
+        menu = dialog;
         menu.show();
+        dialog.findViewById(R.id.strmqtMenuResume).requestFocus();
     }
 
     // The control channel indicator
@@ -293,20 +296,53 @@ public final class RemoteInput implements RemoteGestures.Sink {
 
     private void showIndicator(String text) {
         if (indicator == null) {
-            indicator = new TextView(activity);
-            indicator.setTextColor(Color.WHITE);
-            indicator.setBackgroundColor(0xB0000000);
-            indicator.setFocusable(false);
-            int pad = (int) (8 * activity.getResources().getDisplayMetrics().density);
-            indicator.setPadding(pad * 2, pad, pad * 2, pad);
-            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
-                    Gravity.BOTTOM | Gravity.END);
-            params.setMargins(pad * 3, pad * 3, pad * 3, pad * 3);
-            activity.addContentView(indicator, params);
+            indicator = label(Gravity.BOTTOM | Gravity.END);
         }
         indicator.setText(text);
         indicator.setVisibility(View.VISIBLE);
+    }
+
+    /** A label over the stream in StrmQt's look; it takes no focus and blocks nothing. */
+    private TextView label(int gravity) {
+        TextView view = new TextView(activity);
+        view.setTextColor(activity.getResources().getColor(R.color.strmqt_text));
+        view.setTextSize(16);
+        view.setTypeface(Brand.typeface(activity, null));
+        view.setBackgroundResource(R.drawable.strmqt_chip);
+        view.setFocusable(false);
+        int pad = (int) (8 * activity.getResources().getDisplayMetrics().density);
+        view.setPadding(pad * 2, pad + pad / 2, pad * 2, pad + pad / 2);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, gravity);
+        params.setMargins(pad * 6, pad * 4, pad * 6, pad * 4);
+        activity.addContentView(view, params);
+        return view;
+    }
+
+    /** The one-time hint, bottom centre, gone after a few seconds. */
+    private void showHint(String text) {
+        if (hint == null) {
+            hint = label(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        }
+        hint.animate().cancel();
+        hint.setAlpha(1f);
+        hint.setText(text);
+        hint.setVisibility(View.VISIBLE);
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (!destroyed && hint != null) {
+                    hint.animate().alpha(0f).setDuration(420).withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (hint != null) {
+                                hint.setVisibility(View.GONE);
+                            }
+                        }
+                    });
+                }
+            }
+        }, HINT_MS);
     }
 
     private void hideIndicator() {

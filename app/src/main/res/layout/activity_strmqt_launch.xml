@@ -1,61 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher: "Connecting…" on the way to the stream, and the fork's menu. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
+    android:background="@color/strmqt_ground"
     android:orientation="vertical"
-    android:padding="32dp">
+    android:paddingLeft="48dp"
+    android:paddingTop="27dp"
+    android:paddingRight="48dp"
+    android:paddingBottom="27dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/strmqt_menu_title"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
-
-    <TextView
-        android:id="@+id/strmqtStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
-        android:gravity="center"
-        android:textAppearance="?android:attr/textAppearanceMedium" />
+    <include layout="@layout/strmqt_header" />
 
     <LinearLayout
-        android:id="@+id/strmqtMenuButtons"
-        android:layout_width="280dp"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
         android:orientation="vertical">
 
-        <Button
-            android:id="@+id/strmqtConnect"
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/strmqtStatus"
+            style="@style/StrmQt.Body"
+            android:layout_width="720dp"
             android:layout_height="wrap_content"
-            android:text="@string/strmqt_menu_connect" />
+            android:layout_marginBottom="24dp"
+            android:textColor="@color/strmqt_text"
+            android:textSize="22sp" />
+
+        <LinearLayout
+            android:id="@+id/strmqtMenuButtons"
+            android:layout_width="380dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/strmqtConnect"
+                style="@style/StrmQt.Button.Primary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/strmqt_menu_connect" />
+
+            <Button
+                android:id="@+id/strmqtSetup"
+                style="@style/StrmQt.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/strmqt_menu_setup" />
+
+            <Button
+                android:id="@+id/strmqtHosts"
+                style="@style/StrmQt.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/strmqt_menu_hosts" />
+
+            <Button
+                android:id="@+id/strmqtSettings"
+                style="@style/StrmQt.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/strmqt_menu_settings" />
+        </LinearLayout>
 
         <Button
-            android:id="@+id/strmqtSetup"
-            android:layout_width="match_parent"
+            android:id="@+id/strmqtCancel"
+            style="@style/StrmQt.Button"
+            android:layout_width="280dp"
             android:layout_height="wrap_content"
-            android:text="@string/strmqt_menu_setup" />
-
-        <Button
-            android:id="@+id/strmqtHosts"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/strmqt_menu_hosts" />
-
-        <Button
-            android:id="@+id/strmqtSettings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/strmqt_menu_settings" />
+            android:text="@string/strmqt_menu_cancel"
+            android:visibility="gone" />
     </LinearLayout>
-
-    <Button
-        android:id="@+id/strmqtCancel"
-        android:layout_width="280dp"
-        android:layout_height="wrap_content"
-        android:text="@string/strmqt_menu_cancel"
-        android:visibility="gone" />
 </LinearLayout>

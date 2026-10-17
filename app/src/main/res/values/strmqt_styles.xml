@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    StrmLight's own screens in StrmQt's "Projection Booth" look (StrmQt's
+    docs/BRANDING.md, src/ui/Theme.qml). Typefaces cannot be set from XML on
+    every API level this app supports, so a view's android:tag names its face
+    and Brand.applyFonts sets it: "display" (Archivo), "mono" / "mono-bold"
+    (IBM Plex Mono), "body-medium"; anything else is Public Sans.
+-->
+<resources>
+
+    <style name="StrmQtTheme" parent="AppTheme">
+        <item name="android:windowBackground">@color/strmqt_ground</item>
+        <item name="android:colorBackground">@color/strmqt_ground</item>
+    </style>
+
+    <!-- The fork's menu over the stream. -->
+    <style name="StrmQtDialog" parent="android:Theme.Material.Dialog.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:windowMinWidthMajor">0%</item>
+        <item name="android:windowMinWidthMinor">0%</item>
+        <item name="android:colorAccent">@color/strmqt_accent</item>
+    </style>
+
+    <!-- Every AlertDialog in the app, Moonlight's included (AppTheme, StreamTheme). -->
+    <style name="StrmQtAlertDialog" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorBackground">@color/strmqt_surface_overlay</item>
+        <item name="android:colorAccent">@color/strmqt_accent</item>
+        <item name="android:colorControlHighlight">@color/strmqt_highlight</item>
+        <item name="android:textColorPrimary">@color/strmqt_text</item>
+        <item name="android:textColorSecondary">@color/strmqt_text_secondary</item>
+    </style>
+
+    <style name="StrmQt" />
+
+    <!-- Theme.fontHeading in Archivo: a screen's one heading. -->
+    <style name="StrmQt.Title">
+        <item name="android:tag">display</item>
+        <item name="android:textColor">@color/strmqt_text</item>
+        <item name="android:textSize">34sp</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="StrmQt.Body">
+        <item name="android:textColor">@color/strmqt_text_secondary</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:gravity">center_horizontal</item>
+    </style>
+
+    <style name="StrmQt.Small">
+        <item name="android:textColor">@color/strmqt_text_tertiary</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+
+    <!-- The uppercase mono label StrmQt puts over a group (Theme.trackLabel). -->
+    <style name="StrmQt.Label">
+        <item name="android:tag">mono</item>
+        <item name="android:textColor">@color/strmqt_text_tertiary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.13</item>
+    </style>
+
+    <style name="StrmQt.Button">
+        <item name="android:tag">body-medium</item>
+        <item name="android:background">@drawable/strmqt_button</item>
+        <item name="android:textColor">@color/strmqt_button_text</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:minHeight">66dp</item>
+        <item name="android:minWidth">200dp</item>
+        <item name="android:paddingLeft">33dp</item>
+        <item name="android:paddingRight">33dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:focusable">true</item>
+        <item name="android:stateListAnimator">@animator/strmqt_focus_lift</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+
+    <style name="StrmQt.Button.Primary">
+        <item name="android:background">@drawable/strmqt_button_primary</item>
+        <item name="android:textColor">@color/strmqt_button_primary_text</item>
+    </style>
+
+    <style name="StrmQt.Button.Ghost">
+        <item name="android:background">@drawable/strmqt_button_ghost</item>
+        <item name="android:textColor">@color/strmqt_ghost_text</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:minWidth">0dp</item>
+    </style>
+
+    <!-- A host in the chooser. -->
+    <style name="StrmQt.Card">
+        <item name="android:background">@drawable/strmqt_card</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:stateListAnimator">@animator/strmqt_focus_lift_card</item>
+        <item name="android:paddingLeft">28dp</item>
+        <item name="android:paddingRight">28dp</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+        <item name="android:minHeight">80dp</item>
+    </style>
+
+    <style name="StrmQt.Field">
+        <item name="android:background">@drawable/strmqt_field</item>
+        <item name="android:textColor">@color/strmqt_text</item>
+        <item name="android:textColorHint">@color/strmqt_text_disabled</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:textCursorDrawable">@null</item>
+    </style>
+
+    <style name="StrmQt.Radio" parent="android:Widget.Material.CompoundButton.RadioButton">
+        <item name="android:background">@drawable/strmqt_row</item>
+        <item name="android:buttonTint">@color/strmqt_check_tint</item>
+        <item name="android:textColor">@color/strmqt_text</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:paddingLeft">8dp</item>
+        <item name="android:paddingRight">12dp</item>
+    </style>
+
+    <!-- A step on the code screen: picture, remote. -->
+    <style name="StrmQt.Pill">
+        <item name="android:tag">body-medium</item>
+        <item name="android:background">@drawable/strmqt_pill</item>
+        <item name="android:textColor">@color/strmqt_text_tertiary</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:paddingLeft">18dp</item>
+        <item name="android:paddingRight">24dp</item>
+        <item name="android:drawablePadding">10dp</item>
+    </style>
+</resources>

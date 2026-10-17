@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The setup preview's way in (PreviewSetup in the manifest): debug builds only. -->
+    <bool name="strmqt_preview_entry">false</bool>
+</resources>

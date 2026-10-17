@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A step that is done: amber outline over a faint amber wash. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="999dp" />
+    <solid android:color="@color/strmqt_highlight" />
+    <stroke android:width="2dp" android:color="@color/strmqt_accent" />
+</shape>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The fork's menu over the stream (hold Back): a StrmQt panel with three buttons. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="420dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/strmqt_panel"
+    android:orientation="vertical"
+    android:paddingLeft="24dp"
+    android:paddingTop="22dp"
+    android:paddingRight="24dp"
+    android:paddingBottom="20dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/strmqt_symbol" />
+
+        <TextView
+            android:id="@+id/strmqtWordmark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:includeFontPadding="false"
+            android:tag="display"
+            android:textColor="@color/strmqt_text"
+            android:textSize="24sp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/strmqtMenuResume"
+        style="@style/StrmQt.Button.Primary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/strmqt_menu_resume" />
+
+    <Button
+        android:id="@+id/strmqtMenuDisconnect"
+        style="@style/StrmQt.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/strmqt_menu_disconnect" />
+
+    <Button
+        android:id="@+id/strmqtMenuSettings"
+        style="@style/StrmQt.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/strmqt_menu_settings" />
+</LinearLayout>

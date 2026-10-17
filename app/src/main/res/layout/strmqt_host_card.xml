@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One StrmQt in the chooser: its name, and its address only when two share a name. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/StrmQt.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="14dp"
+    android:gravity="center_vertical"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/strmqtHostName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:duplicateParentState="true"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:tag="display"
+        android:textColor="@color/strmqt_text"
+        android:textSize="28sp" />
+
+    <TextView
+        android:id="@+id/strmqtHostAddress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:duplicateParentState="true"
+        android:tag="mono"
+        android:textColor="@color/strmqt_text_tertiary"
+        android:textSize="16sp"
+        android:visibility="gone" />
+</LinearLayout>

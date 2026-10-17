@@ -36,8 +36,9 @@ import java.util.List;
  *
  * With a host configured and "connect on launch" on, opening the app goes
  * straight to the stream, and a stream that ends unexpectedly is started
- * again with a growing wait, up to a bounded number of tries. Otherwise this
- * is a short menu: connect, set up, Moonlight's host list, settings.
+ * again with a growing wait, up to a bounded number of tries. With nothing
+ * set up it opens the simple setup instead. Otherwise this is a short menu:
+ * connect, set up, Moonlight's host list, settings.
  *
  * The connection itself is Moonlight's: this finds the host through
  * ComputerManagerService, as ShortcutTrampoline does, and hands over to Game.
@@ -87,6 +88,9 @@ public class LaunchActivity extends Activity {
         UiHelper.setLocale(this);
         setContentView(R.layout.activity_strmqt_launch);
         UiHelper.notifyNewRootView(this);
+        ((TextView) findViewById(R.id.strmqtWordmark)).setText(Brand.wordmark(this));
+        Brand.applyFonts(getWindow().getDecorView());
+        Brand.unclip(findViewById(android.R.id.content));
 
         prefs = new StrmQtPrefs(this);
         statusView = findViewById(R.id.strmqtStatus);
@@ -134,16 +138,28 @@ public class LaunchActivity extends Activity {
 
         switch (mode) {
             case START:
-                if (prefs.remoteNeedsPairing()) {
-                    // The remote would be dead in the stream. Back from pairing
-                    // lands in the menu, not here again.
-                    showMenu(null);
-                    startActivity(new Intent(this, SetupActivity.class)
-                            .putExtra(SetupActivity.EXTRA_PAIR_NOW, true));
-                } else if (prefs.connectOnLaunch() && prefs.computerUuid() != null) {
-                    connect();
-                } else {
-                    showMenu(null);
+                switch (FirstRun.onLaunch(prefs.remoteNeedsPairing(), prefs.computerUuid() != null,
+                        prefs.connectOnLaunch())) {
+                    case PAIR_AGAIN:
+                        // The remote would be dead in the stream. Back from pairing
+                        // lands in the menu, not here again.
+                        showMenu(null);
+                        startActivity(new Intent(this, SetupActivity.class)
+                                .putExtra(SetupActivity.EXTRA_PAIR_NOW, true));
+                        break;
+                    case FIRST_RUN:
+                        // Nothing set up: the simple setup, not the menu. Back from it
+                        // leaves the app; pairing starts the stream through a new launcher.
+                        startActivity(new Intent(this, SetupActivity.class));
+                        overridePendingTransition(0, 0);
+                        finish();
+                        break;
+                    case CONNECT:
+                        connect();
+                        break;
+                    case MENU:
+                        showMenu(null);
+                        break;
                 }
                 break;
             case STREAMING:

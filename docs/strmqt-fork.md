@@ -21,29 +21,75 @@ SDK platform the build names if they are missing.
 
 ## Setup on the device
 
-1. Open StrmLight. With nothing configured it shows its menu.
-2. **Set up StrmQt**. The screen searches the network for StrmQt hosts and
-   lists each by name and address. When it finds exactly one, and nothing
-   was set up before, it chooses it and starts pairing at once; otherwise
-   choose a host and **Pair**. A host that is not found can be entered by
-   hand: its address, the Web Remote port (8338) and the Sunshine port
-   (48989, or the "port" line of StrmQt's `sunshine.conf`).
-3. The screen shows one four-digit code. Type it into StrmQt under Settings,
-   Web Remote, **Pair a StrmLight**, or into StrmQt's phone remote under
-   Remote, **Pair a StrmLight**. That one entry pairs both the stream
-   (Moonlight with StrmQt's Sunshine) and the remote (StrmQt's Web Remote).
-   Nothing is typed on the TV.
-4. When both are paired the screen says so, shows the Web Remote
-   certificate's SHA-256 to compare with the one StrmQt shows, applies the
-   stream preset the first time, and starts the stream. From then on,
-   opening the app goes straight to the stream.
+Open StrmLight, find StrmQt, type one code, stream. Everything else is
+behind **Advanced setup**.
 
-Moonlight's own **Hosts** list is still in the menu, but is not needed: the
-StrmQt host's Sunshine is added to it by setup, as its own entry.
+1. **Looking for StrmQt…** With nothing set up, opening the app goes
+   straight to this screen, not to a menu. It searches the network (see
+   Discovery, in detail) up to three times, about 7 s in all.
+2. What it found decides the next screen:
+   - **One StrmQt** that can stream: the code screen, at once.
+   - **Several**: **Which StrmQt?**, one large card per host, by name. An
+     address is shown only under two hosts that go by the same name. The
+     host set up before, if any, is listed first.
+   - **None**: **Can't find StrmQt**, with where to start StrmQt's streaming
+     host (Settings › Web Remote › Streaming host) and **Try again**. While
+     the screen is in front the network is searched again, quietly, every
+     10 s, and a StrmQt that turns up is taken straight to the code. A StrmQt
+     that answers but runs no Sunshine says **StrmQt is not streaming**
+     instead.
+3. **The code screen.** "Pairing with *host*", one large four-digit code,
+   one line saying where to type it (in StrmQt, Settings › Web Remote ›
+   **Pair a StrmLight**, or on StrmQt's phone remote, **Pair a StrmLight**),
+   and two ticks, **Picture** (Moonlight with StrmQt's Sunshine) and
+   **Remote** (StrmQt's Web Remote). Each turns amber with a check when its
+   half is paired. Under them, one line when something needs attention: a
+   different code was typed, too many wrong codes (how long to wait), StrmQt
+   is not answering, or Sunshine refused. **New code** makes a fresh one.
+   Back returns to the chooser when there was one. Nothing is typed on the
+   TV.
+4. **Connected.** When both halves are paired the screen says so, applies
+   the stream preset the first time, and starts the stream 2.5 s later.
+   From then on, opening the app goes straight to the stream, and holding
+   Back in the stream opens the fork's menu, as before.
+
+When pairing stops for a reason a code cannot fix (StrmQt's certificate
+changed, the certificate does not match the one discovery announced, a
+StrmQt too old to pair by code), the screen says **Pairing stopped** with
+the reason, **Try again** and **Advanced setup**.
+
+**Advanced setup**, a quiet button on every one of these screens, opens what
+the simple screens leave out: the full host list with addresses, entering a
+host by hand (its address, the Web Remote port 8338 and the Sunshine port,
+48989 or the "port" line of StrmQt's `sunshine.conf`), **Pair** and **Stop
+pairing**, the two halves' states in full, the Web Remote certificate's
+SHA-256 to compare with the one StrmQt shows, Moonlight's own host list,
+and Settings. Back, or **Simple setup**, returns to the simple screens.
+
+Moonlight's own host list is not needed: the StrmQt host's Sunshine is
+added to it by setup, as its own entry.
 
 Everything is also under Settings, in the **StrmQt** category, including
-**Pair again**, which forgets the remote's token and opens pairing with a
-new code.
+**Set up StrmQt** and **Pair again**, which forgets the remote's token and
+opens the code screen for the stored host with a new code.
+
+### Previewing the setup
+
+A debug build can show each setup screen without touching what is stored:
+
+```
+adb shell am start -n com.strmlight.debug/com.limelight.strmqt.PreviewSetup \
+    -f 0x10008000 --es StrmQtPreview <scenario>
+```
+
+`<scenario>` is `searching`, `one`, `several`, `none`, `nostream`,
+`trouble`, `problem`, `connected`, or `live` (the real search, with pairing
+faked). The preview fakes discovery and pairing, stores nothing, starts no
+stream and is marked "Preview" in its corner. The entry is an
+activity-alias that exists only in debug builds (`strmqt_preview_entry`
+in `src/debug/res`) and is checked against `BuildConfig.DEBUG` as well.
+`-f 0x10008000` starts it in a task of its own, so an earlier preview is
+not reused.
 
 ### Discovery, in detail
 
@@ -201,8 +247,43 @@ still opens the fork's menu.
 
 ### The fork's menu
 
-Hold Back for 2 seconds while streaming: Return to StrmQt, Disconnect,
-Settings. A hint is shown once.
+Hold Back for 2 seconds while streaming: a StrmQt panel over the stream
+with **Return to StrmQt** (focused), **Disconnect** and **Settings**. The
+first time remote mode streams, a label at the bottom of the stream says
+"Hold Back for 2 seconds to open the menu" and fades after 5 s.
+
+## Look
+
+StrmLight's own screens (setup, the launcher menu, the menu over the
+stream, the remote's labels) wear StrmQt's "Projection Booth" look, from
+StrmQt's `docs/BRANDING.md`, so the TV reads as part of StrmQt.
+
+- **Colours** (`values/strmqt_colors.xml`): ground `#0C0B0A`; surfaces
+  `#141210`, `#1D1A17`, `#262220`; hairline `#2E2A26`; text `#F5F1EA`,
+  `#A29A8E`, `#928A80`; amber `#F0A02A` (muted `#7A5416`, text on amber
+  `#0C0B0A`). Amber is for focus, the primary action and what is done,
+  never decoration.
+- **Type**: Archivo at weight 600 for titles and the wordmark, Public Sans
+  for text, IBM Plex Mono for the code and labels. The fonts are bundled
+  under `assets/fonts` with their licences (SIL Open Font License 1.1) and
+  set by `Brand` from a view's `android:tag` (`display`, `mono`,
+  `mono-bold`, `body-medium`; Public Sans when there is none). Sizes are for
+  ten feet: titles 34sp, text 20sp, the code 96sp.
+- **Shapes**: radii 4, 8, 12 dp and pills.
+- **Focus**, as StrmQt draws it: a 3dp amber ring standing clear of the
+  button, the button lifting to 1.05 over 160 ms (cards 1.02), and the
+  primary button filled amber. The ring is drawn in the button's own
+  background (`drawable/strmqt_button*.xml`), so `Brand.unclip` lets it
+  show past its parents.
+- **Wordmark**: "Strm" in cream, "Light" in amber, beside StrmQt's aperture
+  symbol (`drawable-nodpi/strmqt_symbol.png`, rendered from StrmQt's
+  `assets/brand/strmqt-symbol.svg`), as StrmQt sets "Strm" and "Qt".
+- **Icons**: the launcher icon is StrmQt's Aperture-Q and is unchanged. The
+  TV banner was redrawn with the symbol and the wordmark in Archivo, and
+  "for StrmQt" in Plex Mono.
+- **Upstream screens** (the host list, Settings, dialogs, the stream's own
+  overlays) keep their layouts, but the app theme (`values/styles.xml`)
+  gives them the ground, surfaces, text colours and amber accent.
 
 ### Connect on launch, reconnect
 
@@ -277,9 +358,10 @@ Read from StrmQt at `1d5cebf`:
   by a code StrmLight shows; see Pairing, in detail. That part follows
   StrmQt's `WebRemoteServer.cpp` as of the `streaming-host` branch at
   `a453357`.)
-- **The Web Remote only runs while StrmQt is signed in to Emby.** At StrmQt's
-  sign-in screen transport A has nothing to talk to; the indicator shows
-  "StrmQt is not answering".
+- **The Web Remote runs whether or not StrmQt is signed in to Emby** (StrmQt
+  `b5b501d`): pairing is the device's, not the Emby account's, so the remote
+  also drives StrmQt's sign-in screen and profile picker. Earlier StrmQt builds
+  stopped it while signed out.
 
 ## Tested, and not
 
@@ -289,9 +371,15 @@ Read from StrmQt at `1d5cebf`:
 | Web Remote client: pinning; pairing by code (waiting, typed in, wrong code, 429 wait, pairing off, a held token still good or removed, older StrmQt, the device-name header); staying paired across a restart; a removed device not looping on `401`; recovery; dropping stale presses | Unit tests, against a stand-in server written from StrmQt's source |
 | Discovery: reading replies (complete, unknown fields, missing or bad ports, bad fingerprints, garbage), deduplication, the probe and its timing over loopback | Unit tests, against a stand-in host on loopback (never port 8338) |
 | One-code pairing: both halves from one entry; a stale Sunshine session (`409`) retried until it clears; a wrong PIN; Sunshine unreachable or refusing; halves already paired; a token held for another certificate; pausing (including a Moonlight request finishing while paused); the announced certificate checked; a new code; lockout; an older StrmQt; stopping | Unit tests, with a stand-in Sunshine behind the stream-pairing interface and the stand-in Web Remote |
+| First-run decisions: what opening the app does, which screen follows a search (one, several, none, hosts that cannot stream, a host found late, Pair again with the stored host, after the user stopped pairing), the chooser's order and when it shows addresses, the code screen's ticks and its one line of trouble | Unit tests (`FirstRunTest`) |
+| Every simple setup screen, Advanced setup and back, live discovery finding StrmQt, the launch straight into the stream, the menu over a running stream, upstream's host list and Settings in the palette | On a Fire TV (API 28), through the debug preview, which stores nothing; the TV kept its pairing |
 | Launcher menu, settings category, preset written | Android emulator (phone image, API 36, landscape), against a stand-in server, with the earlier PIN pairing |
 | The setup screen with discovery and one-code pairing, `MoonlightPairer` against a real Sunshine, Pair again, the removed-device path in the stream | Builds and installs on a Fire TV (API 28); not yet run against StrmQt |
 | Unchanged upstream build | Built before any change |
+
+Not yet seen on a device with the new screens: a real first run (it needs a
+device with nothing stored), pairing by code through them, Pair again, the
+remote's labels and hint in the stream, and the launcher menu.
 
 Not tested at all, because no Fire TV, no paired Sunshine and no signed-in
 StrmQt were available when this was built:

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A step still waiting: an open ring. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12,6.5 A5.5,5.5 0 1,1 11.99,6.5 Z"
+        android:strokeColor="@color/strmqt_text_tertiary"
+        android:strokeWidth="2" />
+</vector>

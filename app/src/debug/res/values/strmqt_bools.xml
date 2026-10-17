@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- StrmQt fork: debug builds can open the setup as a preview (docs/strmqt-fork.md). -->
+    <bool name="strmqt_preview_entry">true</bool>
+</resources>

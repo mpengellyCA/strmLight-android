@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- StrmQt's "Projection Booth" palette, from StrmQt's src/ui/Theme.qml and docs/BRANDING.md. -->
+<resources>
+    <color name="strmqt_ground">#0C0B0A</color>
+    <color name="strmqt_surface">#141210</color>
+    <color name="strmqt_surface_raised">#1D1A17</color>
+    <color name="strmqt_surface_overlay">#262220</color>
+    <color name="strmqt_hairline">#2E2A26</color>
+    <color name="strmqt_text">#F5F1EA</color>
+    <color name="strmqt_text_secondary">#A29A8E</color>
+    <color name="strmqt_text_tertiary">#928A80</color>
+    <color name="strmqt_text_disabled">#4A453F</color>
+    <color name="strmqt_accent">#F0A02A</color>
+    <color name="strmqt_accent_muted">#7A5416</color>
+    <color name="strmqt_on_accent">#0C0B0A</color>
+    <color name="strmqt_warning">#E0A33E</color>
+    <color name="strmqt_negative">#E05C5C</color>
+    <!-- Theme.scrimColor: the ground at 86 %, behind the in-stream labels. -->
+    <color name="strmqt_scrim">#DB0C0B0A</color>
+    <!-- Theme.hoverTint over the ground, for a pressed or highlighted row. -->
+    <color name="strmqt_highlight">#33F0A02A</color>
+</resources>

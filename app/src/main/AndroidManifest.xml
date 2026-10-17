@@ -105,11 +105,13 @@
         </activity>
 
         <!-- StrmQt fork: the front door. It goes straight to the stream when a host is
-             configured, and is the fork's menu otherwise. PcView above is reached from it. -->
+             configured, opens the simple setup when nothing is, and is the fork's menu
+             otherwise. PcView above is reached from the advanced setup. -->
         <activity
             android:name=".strmqt.LaunchActivity"
             android:exported="true"
             android:resizeableActivity="true"
+            android:theme="@style/StrmQtTheme"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -121,8 +123,16 @@
         <activity
             android:name=".strmqt.SetupActivity"
             android:resizeableActivity="true"
+            android:theme="@style/StrmQtTheme"
             android:windowSoftInputMode="stateHidden"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection" />
+        <!-- The setup as a preview that stores nothing and pairs with nothing, for seeing
+             its screens on a device that is set up. Enabled in debug builds only. -->
+        <activity-alias
+            android:name=".strmqt.PreviewSetup"
+            android:enabled="@bool/strmqt_preview_entry"
+            android:exported="true"
+            android:targetActivity=".strmqt.SetupActivity" />
         <receiver
             android:name=".strmqt.BootReceiver"
             android:exported="true">

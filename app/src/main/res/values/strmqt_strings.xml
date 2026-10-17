@@ -47,7 +47,7 @@
     <string name="strmqt_menu_connect">Connect</string>
     <string name="strmqt_menu_connect_to">Connect to %1$s</string>
     <string name="strmqt_menu_setup">Set up StrmQt</string>
-    <string name="strmqt_menu_hosts">Hosts</string>
+    <string name="strmqt_menu_hosts">Moonlight hosts</string>
     <string name="strmqt_menu_cancel">Cancel</string>
     <string name="strmqt_status_pair_again">The remote is not paired with StrmQt. Choose Set up StrmQt to pair it.</string>
     <string name="strmqt_status_not_set_up">Choose Set up StrmQt to find StrmQt and pair with it.</string>
@@ -102,6 +102,44 @@
     <string name="strmqt_setup_unsupported">This StrmQt cannot pair with StrmLight by code. Update StrmQt, then pair again.</string>
     <string name="strmqt_setup_paired">Paired: the stream and the remote. Starting the stream…\nWeb Remote certificate SHA-256:\n%1$s</string>
     <string name="strmqt_setup_paired_open">Paired: the stream. StrmQt asks for no remote pairing. Starting the stream…\nWeb Remote certificate SHA-256:\n%1$s</string>
+
+    <!-- The simple setup: what opening the app shows when nothing is set up -->
+    <string name="strmqt_first_searching_title">Looking for StrmQt…</string>
+    <string name="strmqt_first_searching_body">Searching this network for StrmQt\'s streaming host.</string>
+    <string name="strmqt_first_code_host">Pairing with %1$s</string>
+    <string name="strmqt_first_code_title">Enter this code in StrmQt</string>
+    <string name="strmqt_first_code_where">In StrmQt: Settings › Web Remote › Pair a StrmLight. Or on StrmQt\'s phone remote: Pair a StrmLight.</string>
+    <string name="strmqt_first_step_picture">Picture</string>
+    <string name="strmqt_first_step_remote">Remote</string>
+    <string name="strmqt_first_trouble_wrong_code">StrmQt was given a different code. Type the code above again.</string>
+    <string name="strmqt_first_trouble_locked_out">Too many wrong codes. StrmQt takes codes again in %1$d s.</string>
+    <string name="strmqt_first_trouble_unreachable">StrmQt is not answering right now. Still trying…</string>
+    <string name="strmqt_first_trouble_refused">StrmQt\'s streaming host refused to pair. Trying again…</string>
+    <string name="strmqt_first_new_code">New code</string>
+    <string name="strmqt_first_advanced">Advanced setup</string>
+    <string name="strmqt_first_choose_title">Which StrmQt?</string>
+    <string name="strmqt_first_choose_body">More than one StrmQt is on this network. Choose the one to stream.</string>
+    <string name="strmqt_first_search_again">Search again</string>
+    <string name="strmqt_first_not_found_title">Can\'t find StrmQt</string>
+    <string name="strmqt_first_not_found_body">Check that StrmQt\'s streaming host is running (in StrmQt: Settings › Web Remote › Streaming host) and that this TV is on the same network.</string>
+    <string name="strmqt_first_no_stream_title">StrmQt is not streaming</string>
+    <string name="strmqt_first_no_stream_body">StrmQt answered, but its streaming host is not running. Start it in StrmQt under Settings › Web Remote › Streaming host.</string>
+    <string name="strmqt_first_search_failed">Could not search: %1$s</string>
+    <string name="strmqt_first_try_again">Try again</string>
+    <string name="strmqt_first_problem_title">Pairing stopped</string>
+    <string name="strmqt_first_problem_cert_changed">StrmQt\'s certificate changed while pairing.</string>
+    <string name="strmqt_first_connected_title">Connected</string>
+    <string name="strmqt_first_connected_body">Starting the stream from %1$s…</string>
+    <string name="strmqt_first_connected_preview">Preview: nothing was stored and no stream starts.</string>
+    <string name="strmqt_first_preview_badge">Preview</string>
+
+    <!-- The advanced setup: everything the simple setup does not show -->
+    <string name="strmqt_advanced_title">Advanced setup</string>
+    <string name="strmqt_advanced_hosts">Moonlight hosts</string>
+    <string name="strmqt_advanced_settings">Settings</string>
+    <string name="strmqt_advanced_simple">Simple setup</string>
+    <string name="strmqt_advanced_cert_label">Web Remote certificate (SHA-256)</string>
+    <string name="strmqt_advanced_cert_none">No certificate pinned yet. It is pinned when pairing finishes.</string>
 
     <string name="strmqt_wake_notification">Returning to StrmQt on wake</string>
 </resources>

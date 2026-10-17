@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.preference.Preference;
 import android.util.AttributeSet;
-import android.widget.Toast;
 
 import com.limelight.R;
 
@@ -29,8 +28,8 @@ public class ActionPreference extends Preference {
                     .putExtra(SetupActivity.EXTRA_PAIR_NOW, true));
         } else if ("preset".equals(action)) {
             boolean uhd = StreamPreset.apply(context);
-            Toast.makeText(context, uhd ? R.string.strmqt_preset_applied_4k
-                    : R.string.strmqt_preset_applied_1080p, Toast.LENGTH_LONG).show();
+            Brand.toast(context, context.getString(uhd ? R.string.strmqt_preset_applied_4k
+                    : R.string.strmqt_preset_applied_1080p));
             if (context instanceof Activity) {
                 // The rows above still show the old values.
                 ((Activity) context).recreate();

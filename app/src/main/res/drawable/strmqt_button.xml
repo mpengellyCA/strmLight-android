@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- StrmButton "secondary": a raised surface with a hairline; StrmQt's 3 dp amber focus ring, outside it, when the D-pad is on it. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
+        <layer-list>
+            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="@color/strmqt_surface" />
+                    <stroke android:width="1dp" android:color="@color/strmqt_hairline" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="13dp" />
+                    <stroke android:width="3dp" android:color="@color/strmqt_accent" />
+                </shape>
+            </item>
+            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="@color/strmqt_surface_overlay" />
+                    <stroke android:width="1dp" android:color="@color/strmqt_hairline" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item android:state_pressed="true">
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="13dp" />
+                    <stroke android:width="3dp" android:color="@color/strmqt_accent" />
+                </shape>
+            </item>
+            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="@color/strmqt_surface_overlay" />
+                    <stroke android:width="1dp" android:color="@color/strmqt_hairline" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item android:left="5dp" android:top="5dp" android:right="5dp" android:bottom="5dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="8dp" />
+                    <solid android:color="@color/strmqt_surface_raised" />
+                    <stroke android:width="1dp" android:color="@color/strmqt_hairline" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

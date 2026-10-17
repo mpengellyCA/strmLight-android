@@ -20,6 +20,16 @@
         <!-- All customizations that are NOT specific to a particular API-level can go here. -->
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
+        <!-- StrmQt fork: StrmQt's palette (strmqt_colors.xml) on Moonlight's own screens too -->
+        <item name="android:windowBackground">@color/strmqt_ground</item>
+        <item name="android:colorBackground">@color/strmqt_ground</item>
+        <item name="android:colorPrimary">@color/strmqt_surface</item>
+        <item name="android:colorPrimaryDark">@color/strmqt_ground</item>
+        <item name="android:colorAccent">@color/strmqt_accent</item>
+        <item name="android:colorControlHighlight">@color/strmqt_highlight</item>
+        <item name="android:textColorPrimary">@color/strmqt_text</item>
+        <item name="android:textColorSecondary">@color/strmqt_text_secondary</item>
+        <item name="android:alertDialogTheme">@style/StrmQtAlertDialog</item>
     </style>
 
     <style name="StreamBaseTheme" parent="AppBaseTheme">
@@ -32,6 +42,9 @@
         <!-- All customizations that are NOT specific to a particular API-level can go here. -->
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
+        <!-- StrmQt fork: the stream's own dialogs in StrmQt's palette -->
+        <item name="android:colorAccent">@color/strmqt_accent</item>
+        <item name="android:alertDialogTheme">@style/StrmQtAlertDialog</item>
     </style>
 
 </resources>
