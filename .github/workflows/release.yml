@@ -1,0 +1,113 @@
+name: Release
+
+# A tag v<version> builds, tests and signs the APK and publishes it with
+# docs/releases/<version>.md as the notes; everything before 1.0 is a
+# pre-release. Run by hand it builds and signs the same APK as an artifact and
+# publishes nothing.
+#
+# The signing key comes from the repository's secrets: STRMLIGHT_KEYSTORE_BASE64
+# (a PKCS12 keystore, base64), STRMLIGHT_KEYSTORE_PASSWORD, STRMLIGHT_KEY_ALIAS,
+# STRMLIGHT_KEY_PASSWORD. Every release must be signed with the same key, or
+# Android will not install it over the last one.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Version
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION=$(sed -n 's/^ *versionName "\(.*\)"/\1/p' app/build.gradle)
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::cannot read versionName (got '$VERSION')"; exit 1; }
+          if [ "$REF_TYPE" = tag ] && [ "$REF_NAME" != "v$VERSION" ]; then
+            echo "::error::tag $REF_NAME does not match versionName $VERSION in app/build.gradle"
+            exit 1
+          fi
+          [ -f "docs/releases/$VERSION.md" ] || { echo "::error::docs/releases/$VERSION.md is missing"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android SDK packages
+        run: |
+          NDK=$(sed -n 's/^ *ndkVersion "\(.*\)"/\1/p' app/build.gradle)
+          SDK=$(sed -n 's/^ *compileSdk \([0-9]*\)/\1/p' app/build.gradle)
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-$SDK" "ndk;$NDK" >/dev/null
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon :app:testNonRootDebugUnitTest
+
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.STRMLIGHT_KEYSTORE_BASE64 }}
+        run: |
+          [ -n "$KEYSTORE_BASE64" ] || { echo "::error::the STRMLIGHT_KEYSTORE_BASE64 secret is not set"; exit 1; }
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/strmlight.jks"
+
+      - name: Signed APK
+        env:
+          STRMLIGHT_KEYSTORE: ${{ runner.temp }}/strmlight.jks
+          STRMLIGHT_KEYSTORE_PASSWORD: ${{ secrets.STRMLIGHT_KEYSTORE_PASSWORD }}
+          STRMLIGHT_KEY_ALIAS: ${{ secrets.STRMLIGHT_KEY_ALIAS }}
+          STRMLIGHT_KEY_PASSWORD: ${{ secrets.STRMLIGHT_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon :app:assembleNonRootRelease
+
+      - name: Check the signature and name the file
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          rm -f "$RUNNER_TEMP/strmlight.jks"
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          mkdir upload
+          cp app/build/outputs/apk/nonRoot/release/app-nonRoot-release.apk "upload/StrmLight-$VERSION.apk"
+          "$APKSIGNER" verify --print-certs "upload/StrmLight-$VERSION.apk" | grep -E "certificate (DN|SHA-256)"
+          (cd upload && sha256sum "StrmLight-$VERSION.apk" > "StrmLight-$VERSION.apk.sha256")
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: strmlight-release
+          path: upload/*
+          if-no-files-found: error
+
+      - name: Publish
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          case "$VERSION" in
+            0.*) KIND=--prerelease ;;
+            *)   KIND=--latest ;;
+          esac
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "StrmLight $TAG" \
+            --notes-file "docs/releases/$VERSION.md" \
+            "$KIND" \
+            upload/*

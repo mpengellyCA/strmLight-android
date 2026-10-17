@@ -11,8 +11,11 @@ android {
         minSdk 21
         targetSdk 36
 
-        versionName "12.2"
-        versionCode = 315
+        // StrmQt fork: StrmLight's own version, released beside StrmQt's.
+        // Based on Moonlight 12.2 (versionCode 315); com.strmlight never had
+        // a lower code than this.
+        versionName "0.9.0"
+        versionCode = 900
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'
@@ -82,6 +85,20 @@ android {
         }
     }
 
+    // StrmQt fork: release signing from the environment (the release
+    // workflow sets it from the repository's secrets). Without it the release
+    // APK is left unsigned, as upstream's is.
+    signingConfigs {
+        if (System.getenv("STRMLIGHT_KEYSTORE")) {
+            release {
+                storeFile file(System.getenv("STRMLIGHT_KEYSTORE"))
+                storePassword System.getenv("STRMLIGHT_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("STRMLIGHT_KEY_ALIAS")
+                keyPassword System.getenv("STRMLIGHT_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
@@ -124,6 +141,10 @@ android {
             // ".unofficial" suffix that stood here is gone.
             resValue "string", "app_label", "StrmLight"
             resValue "string", "app_label_root", "StrmLight (Root)"
+
+            if (System.getenv("STRMLIGHT_KEYSTORE")) {
+                signingConfig signingConfigs.release
+            }
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

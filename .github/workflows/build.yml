@@ -1,0 +1,47 @@
+name: Build
+
+# Every push and pull request: the unit tests and a debug APK.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # moonlight-common-c, the native streaming core.
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android SDK packages
+        # The runner's SDK has the command-line tools; the platform and the
+        # NDK app/build.gradle names are added here.
+        run: |
+          NDK=$(sed -n 's/^ *ndkVersion "\(.*\)"/\1/p' app/build.gradle)
+          SDK=$(sed -n 's/^ *compileSdk \([0-9]*\)/\1/p' app/build.gradle)
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-$SDK" "ndk;$NDK" >/dev/null
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon :app:testNonRootDebugUnitTest
+
+      - name: Debug APK
+        run: ./gradlew --no-daemon :app:assembleNonRootDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: strmlight-debug
+          path: app/build/outputs/apk/nonRoot/debug/*.apk
+          if-no-files-found: error
