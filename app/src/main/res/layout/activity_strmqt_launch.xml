@@ -50,14 +50,6 @@
                 android:text="@string/strmqt_menu_setup" />
 
             <Button
-                android:id="@+id/strmqtHosts"
-                style="@style/StrmQt.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/strmqt_menu_hosts" />
-
-            <Button
                 android:id="@+id/strmqtSettings"
                 style="@style/StrmQt.Button"
                 android:layout_width="match_parent"

@@ -27,7 +27,6 @@ import android.widget.TextView;
 
 import com.limelight.BuildConfig;
 import com.limelight.LimeLog;
-import com.limelight.PcView;
 import com.limelight.R;
 import com.limelight.computers.ComputerManagerService;
 import com.limelight.preferences.StreamSettings;
@@ -313,8 +312,6 @@ public class SetupActivity extends Activity {
             }
         });
         newCodeButton.setOnClickListener(v -> newCode());
-        findViewById(R.id.strmqtAdvancedHosts).setOnClickListener(
-                v -> startActivity(new Intent(this, PcView.class)));
         findViewById(R.id.strmqtAdvancedSettings).setOnClickListener(
                 v -> startActivity(new Intent(this, StreamSettings.class)));
         findViewById(R.id.strmqtAdvancedSimple).setOnClickListener(v -> showAdvanced(false));

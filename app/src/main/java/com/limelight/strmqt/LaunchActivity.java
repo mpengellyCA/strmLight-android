@@ -14,7 +14,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.limelight.LimeLog;
-import com.limelight.PcView;
 import com.limelight.R;
 import com.limelight.binding.PlatformBinding;
 import com.limelight.computers.ComputerManagerListener;
@@ -105,8 +104,6 @@ public class LaunchActivity extends Activity {
         cancelButton.setOnClickListener(v -> showMenu(null));
         findViewById(R.id.strmqtSetup).setOnClickListener(
                 v -> startActivity(new Intent(this, SetupActivity.class)));
-        findViewById(R.id.strmqtHosts).setOnClickListener(
-                v -> startActivity(new Intent(this, PcView.class)));
         findViewById(R.id.strmqtSettings).setOnClickListener(
                 v -> startActivity(new Intent(this, StreamSettings.class)));
         connectRequested = getIntent().getBooleanExtra(EXTRA_CONNECT, false);

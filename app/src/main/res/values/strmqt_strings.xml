@@ -47,7 +47,6 @@
     <string name="strmqt_menu_connect">Connect</string>
     <string name="strmqt_menu_connect_to">Connect to %1$s</string>
     <string name="strmqt_menu_setup">Set up StrmQt</string>
-    <string name="strmqt_menu_hosts">Moonlight hosts</string>
     <string name="strmqt_menu_cancel">Cancel</string>
     <string name="strmqt_status_pair_again">The remote is not paired with StrmQt. Choose Set up StrmQt to pair it.</string>
     <string name="strmqt_status_not_set_up">Choose Set up StrmQt to find StrmQt and pair with it.</string>
@@ -135,7 +134,6 @@
 
     <!-- The advanced setup: everything the simple setup does not show -->
     <string name="strmqt_advanced_title">Advanced setup</string>
-    <string name="strmqt_advanced_hosts">Moonlight hosts</string>
     <string name="strmqt_advanced_settings">Settings</string>
     <string name="strmqt_advanced_simple">Simple setup</string>
     <string name="strmqt_advanced_cert_label">Web Remote certificate (SHA-256)</string>

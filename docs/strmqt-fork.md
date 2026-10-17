@@ -59,15 +59,19 @@ StrmQt too old to pair by code), the screen says **Pairing stopped** with
 the reason, **Try again** and **Advanced setup**.
 
 **Advanced setup**, a quiet button on every one of these screens, opens what
-the simple screens leave out: the full host list with addresses, entering a
+the simple screens leave out: every host discovery found, with addresses, entering a
 host by hand (its address, the Web Remote port 8338 and the Sunshine port,
 48989 or the "port" line of StrmQt's `sunshine.conf`), **Pair** and **Stop
 pairing**, the two halves' states in full, the Web Remote certificate's
-SHA-256 to compare with the one StrmQt shows, Moonlight's own host list,
-and Settings. Back, or **Simple setup**, returns to the simple screens.
+SHA-256 to compare with the one StrmQt shows, and Settings. Back, or **Simple setup**, returns to the simple screens.
 
-Moonlight's own host list is not needed: the StrmQt host's Sunshine is
-added to it by setup, as its own entry.
+StrmLight streams StrmQt and nothing else, so Moonlight's own screens for
+other computers are gone: the host list (`PcView`), the app grid (`AppView`),
+adding a computer by address, launcher and TV-channel shortcuts
+(`ShortcutTrampoline`, `ShortcutHelper`, `TvChannelHelper`) and the poster
+provider. Setup still adds the StrmQt host's Sunshine to Moonlight's computer
+store (`ComputerManagerService`), as its own entry, because the stream is
+started from there.
 
 Everything is also under Settings, in the **StrmQt** category, including
 **Set up StrmQt** and **Pair again**, which forgets the remote's token and
@@ -128,10 +132,10 @@ There is no standing PIN. StrmLight makes up a random four-digit code
 screen is in front.
 
 **The stream.** Moonlight's own pairing (`PairingManager`, as Moonlight's
-host list does it), with the code as Moonlight's PIN instead of a random
+host list did it), with the code as Moonlight's PIN instead of a random
 one, against the Sunshine at `<host>:<Sunshine port>`. The computer is first
-added to Moonlight's list under that address and port, as Add PC manually
-does with `address:port`; Moonlight keys computers by the uniqueid Sunshine
+added to Moonlight's computer store under that address and port, as
+upstream's Add PC manually did with `address:port`; Moonlight keys computers by the uniqueid Sunshine
 reports, so StrmQt's Sunshine is its own entry and is not merged with
 another Sunshine on the same machine. Moonlight's pairing request waits on
 the host until the PIN is entered there. StrmQt, once the code is typed
@@ -281,8 +285,7 @@ StrmQt's `docs/BRANDING.md`, so the TV reads as part of StrmQt.
 - **Icons**: the launcher icon is StrmQt's Aperture-Q and is unchanged. The
   TV banner was redrawn with the symbol and the wordmark in Archivo, and
   "for StrmQt" in Plex Mono.
-- **Upstream screens** (the host list, Settings, dialogs, the stream's own
-  overlays) keep their layouts, but the app theme (`values/styles.xml`)
+- **Upstream screens** (Settings, dialogs, the stream's own overlays) keep their layouts, but the app theme (`values/styles.xml`)
   gives them the ground, surfaces, text colours and amber accent.
 
 ### Connect on launch, reconnect
@@ -343,10 +346,11 @@ Read from upstream at `b48494cb`, not observed on a device:
   buttons, is deliberately not captured: it leaves the stream.
 - Play/Pause, Rewind and Fast-forward are not controller buttons and have no
   mapping in `KeyboardTranslator`; they are not sent.
-- `ShortcutTrampoline` exists and starts a stream from an intent, but it
-  needs the app list to be cached from an earlier visit, reports failure only
-  as a dialog, and cannot retry. `LaunchActivity` uses the same service and
-  the same start intent instead.
+- `ShortcutTrampoline` started a stream from an intent, but it needed the
+  app list to be cached from an earlier visit, reported failure only as a
+  dialog, and could not retry. `LaunchActivity` uses the same service and the
+  same start intent instead, and the trampoline has since been removed with
+  the host list.
 - Moonlight accepts `address:port` when adding a host, and upstream keeps
   the screen on while streaming.
 
@@ -372,7 +376,7 @@ Read from StrmQt at `1d5cebf`:
 | Discovery: reading replies (complete, unknown fields, missing or bad ports, bad fingerprints, garbage), deduplication, the probe and its timing over loopback | Unit tests, against a stand-in host on loopback (never port 8338) |
 | One-code pairing: both halves from one entry; a stale Sunshine session (`409`) retried until it clears; a wrong PIN; Sunshine unreachable or refusing; halves already paired; a token held for another certificate; pausing (including a Moonlight request finishing while paused); the announced certificate checked; a new code; lockout; an older StrmQt; stopping | Unit tests, with a stand-in Sunshine behind the stream-pairing interface and the stand-in Web Remote |
 | First-run decisions: what opening the app does, which screen follows a search (one, several, none, hosts that cannot stream, a host found late, Pair again with the stored host, after the user stopped pairing), the chooser's order and when it shows addresses, the code screen's ticks and its one line of trouble | Unit tests (`FirstRunTest`) |
-| Every simple setup screen, Advanced setup and back, live discovery finding StrmQt, the launch straight into the stream, the menu over a running stream, upstream's host list and Settings in the palette | On a Fire TV (API 28), through the debug preview, which stores nothing; the TV kept its pairing |
+| Every simple setup screen, Advanced setup and back, live discovery finding StrmQt, the launch straight into the stream, the menu over a running stream, upstream's Settings in the palette | On a Fire TV (API 28), through the debug preview, which stores nothing; the TV kept its pairing |
 | Launcher menu, settings category, preset written | Android emulator (phone image, API 36, landscape), against a stand-in server, with the earlier PIN pairing |
 | The setup screen with discovery and one-code pairing, `MoonlightPairer` against a real Sunshine, Pair again, the removed-device path in the stream | Builds and installs on a Fire TV (API 28); not yet run against StrmQt |
 | Unchanged upstream build | Built before any change |

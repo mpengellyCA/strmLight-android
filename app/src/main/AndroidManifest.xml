@@ -63,13 +63,6 @@
         android:enableOnBackInvokedCallback="false"
         android:theme="@style/AppTheme">
 
-        <provider
-            android:name=".PosterContentProvider"
-            android:authorities="poster.${applicationId}"
-            android:enabled="true"
-            android:exported="true">
-        </provider>
-
         <!-- Samsung multi-window support -->
         <uses-library
             android:name="com.sec.android.app.multiwindow"
@@ -92,21 +85,9 @@
         <!-- Samsung DeX support requires explicit placement of android:resizeableActivity="true"
              in each activity even though it is implied by targeting API 24+ -->
 
-        <activity
-            android:name=".PcView"
-            android:exported="true"
-            android:resizeableActivity="true"
-            android:enableOnBackInvokedCallback="true"
-            android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection">
-
-            <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
-            <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
-
-        </activity>
-
         <!-- StrmQt fork: the front door. It goes straight to the stream when a host is
              configured, opens the simple setup when nothing is, and is the fork's menu
-             otherwise. PcView above is reached from the advanced setup. -->
+             otherwise. -->
         <activity
             android:name=".strmqt.LaunchActivity"
             android:exported="true"
@@ -149,41 +130,12 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Listens for the screen turning on to return to the stream" />
         </service>
-        <!-- Small hack to support launcher shortcuts without relaunching over and over again when the back button is pressed -->
-        <activity
-            android:name=".ShortcutTrampoline"
-            android:noHistory="true"
-            android:exported="true"
-            android:resizeableActivity="true"
-            android:enableOnBackInvokedCallback="true"
-            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection">
-            <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
-            <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
-        </activity>
-        <activity
-            android:name=".AppView"
-            android:resizeableActivity="true"
-            android:enableOnBackInvokedCallback="true"
-            android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection">
-            <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
-            <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
-        </activity>
         <activity
             android:name=".preferences.StreamSettings"
             android:resizeableActivity="true"
             android:enableOnBackInvokedCallback="true"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"
             android:label="Streaming Settings">
-            <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
-            <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
-        </activity>
-        <activity
-            android:name=".preferences.AddComputerManually"
-            android:resizeableActivity="true"
-            android:windowSoftInputMode="stateVisible"
-            android:enableOnBackInvokedCallback="true"
-            android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"
-            android:label="Add Computer Manually">
             <meta-data android:name="WindowManagerPreference:FreeformWindowSize" android:value="system-default" />
             <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
         </activity>

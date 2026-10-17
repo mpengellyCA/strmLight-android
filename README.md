@@ -13,7 +13,7 @@ Download `StrmLight-<version>.apk` from [Releases](https://github.com/mpengellyC
 - **Fire TV:** install the *Downloader* app from the Amazon store, allow it to install unknown apps (Settings › My Fire TV › Developer options › Install unknown apps), and open the APK's link in it.
 - **From a computer:** turn on ADB debugging on the TV, then `adb connect <tv-address>` and `adb install StrmLight-<version>.apk`.
 
-Android 5.0 or newer. It installs beside Moonlight and leaves Moonlight's settings and pairings alone. A newer release installs over an older one and keeps its pairing.
+Android 5.0 or newer. It installs beside Moonlight and leaves Moonlight's settings and pairings alone. StrmLight streams StrmQt only: it has no list of other computers or games. A newer release installs over an older one and keeps its pairing.
 
 ## Set up
 
@@ -25,7 +25,7 @@ You need StrmQt 0.9.0 or newer on the computer, with its streaming host set up o
 
 From then on, opening StrmLight goes straight to StrmQt. Hold **Back** for two seconds while streaming for StrmLight's menu: Return to StrmQt, Disconnect, Settings.
 
-**Advanced setup**, on every setup screen, has what the simple path hides: entering the host by hand (address, Web Remote port 8338, Sunshine port), the certificate fingerprint, Moonlight's own host list and settings.
+**Advanced setup**, on every setup screen, has what the simple path hides: entering the host by hand (address, Web Remote port 8338, Sunshine port), the certificate fingerprint, and the stream settings.
 
 ## What it does
 

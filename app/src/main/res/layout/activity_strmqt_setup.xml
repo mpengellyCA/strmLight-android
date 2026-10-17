@@ -651,18 +651,10 @@
                 android:orientation="horizontal">
 
                 <Button
-                    android:id="@+id/strmqtAdvancedHosts"
-                    style="@style/StrmQt.Button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/strmqt_advanced_hosts" />
-
-                <Button
                     android:id="@+id/strmqtAdvancedSettings"
                     style="@style/StrmQt.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginLeft="8dp"
                     android:text="@string/strmqt_advanced_settings" />
 
                 <Button

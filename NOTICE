@@ -25,6 +25,12 @@ small, and are marked "StrmQt fork" where they are code:
 - app/src/main/AndroidManifest.xml: the launcher entry moves from PcView to
   the fork's LaunchActivity; the fork's activities, boot receiver and wake
   service, and the permissions those need.
+- Removed, since StrmLight streams StrmQt only: the host list (PcView), the
+  app grid (AppView and the grid package), adding a computer by address
+  (AddComputerManually), launcher and TV-channel shortcuts
+  (ShortcutTrampoline, ShortcutHelper, TvChannelHelper, PosterContentProvider)
+  and their layouts and icons. Game.java no longer reports shortcut use, and
+  StreamSettings relaunches LaunchActivity instead of PcView.
 - app/src/main/java/com/limelight/Game.java: hooks for remote mode and for
   handing an ended stream back to the launcher.
 - app/src/main/res/xml/preferences.xml: a "StrmQt" settings category.
