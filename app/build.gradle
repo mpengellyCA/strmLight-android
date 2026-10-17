@@ -37,7 +37,7 @@ android {
                 }
             }
 
-            applicationId "com.limelight.root"
+            applicationId "com.strmlight.root"
             dimension "root"
             buildConfigField "boolean", "ROOT_BUILD", "true"
         }
@@ -49,7 +49,8 @@ android {
                 }
             }
 
-            applicationId "com.limelight"
+            // StrmQt fork: its own id, so it installs beside stock Moonlight
+            applicationId "com.strmlight"
             dimension "root"
             buildConfigField "boolean", "ROOT_BUILD", "false"
         }
@@ -84,8 +85,8 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
-            resValue "string", "app_label", "Moonlight (Debug)"
-            resValue "string", "app_label_root", "Moonlight (Root Debug)"
+            resValue "string", "app_label", "StrmLight (Debug)"
+            resValue "string", "app_label_root", "StrmLight (Root Debug)"
         }
         release {
             // To whomever is releasing/using an APK in release mode with
@@ -118,9 +119,11 @@ android {
             // is to please change the applicationId before you publish.
             //
             // TL;DR: Leave the following line alone!
-            applicationIdSuffix ".unofficial"
-            resValue "string", "app_label", "Moonlight"
-            resValue "string", "app_label_root", "Moonlight (Root)"
+            //
+            // StrmQt fork: the application ID above is the fork's own, so the
+            // ".unofficial" suffix that stood here is gone.
+            resValue "string", "app_label", "StrmLight"
+            resValue "string", "app_label_root", "StrmLight (Root)"
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -148,6 +151,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:5.5.0'
     implementation 'org.jmdns:jmdns:3.6.3'
     implementation 'com.github.cgutman:ShieldControllerExtensions:1.0.1'
+
+    testImplementation 'junit:junit:4.13.2'
 
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }

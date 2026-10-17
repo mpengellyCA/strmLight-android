@@ -1,0 +1,37 @@
+StrmLight
+=========
+
+StrmLight is a fork of Moonlight for Android
+(https://github.com/moonlight-stream/moonlight-android), made to stream
+StrmQt, a native Emby client, from a Sunshine host to Android TV and Fire TV
+devices. It is not affiliated with or endorsed by the Moonlight project.
+
+Forked from upstream commit b48494cb ("Version 12.2").
+
+Moonlight for Android is Copyright its contributors and is licensed under the
+GNU General Public License, version 3 (see LICENSE.txt). StrmLight is
+distributed under the same licence, with its source public. All upstream
+copyright and licence notices are kept.
+
+What the fork changes
+---------------------
+
+New code lives in app/src/main/java/com/limelight/strmqt/ and in resource
+files whose names start with "strmqt". Edits to upstream files are kept
+small, and are marked "StrmQt fork" where they are code:
+
+- app/build.gradle: the application id (com.strmlight) and name, and JUnit
+  for the fork's unit tests.
+- app/src/main/AndroidManifest.xml: the launcher entry moves from PcView to
+  the fork's LaunchActivity; the fork's activities, boot receiver and wake
+  service, and the permissions those need.
+- app/src/main/java/com/limelight/Game.java: hooks for remote mode and for
+  handing an ended stream back to the launcher.
+- app/src/main/res/xml/preferences.xml: a "StrmQt" settings category.
+- app/src/main/res/mipmap-*/ic_launcher*.png, drawable-xhdpi/atv_banner.png,
+  drawable/ic_channel.xml and values/ic_launcher_background.xml: the launcher
+  icon and TV banner are replaced with artwork rendered from StrmQt's brand
+  files (assets/brand in the StrmQt source). The banner wordmark is set in
+  Archivo and IBM Plex Mono, both under the SIL Open Font License.
+
+docs/strmqt-fork.md describes the behaviour, setup and what has been tested.

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/strmqt_menu_title"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <TextView
+        android:id="@+id/strmqtStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <LinearLayout
+        android:id="@+id/strmqtMenuButtons"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/strmqtConnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/strmqt_menu_connect" />
+
+        <Button
+            android:id="@+id/strmqtSetup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/strmqt_menu_setup" />
+
+        <Button
+            android:id="@+id/strmqtHosts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/strmqt_menu_hosts" />
+
+        <Button
+            android:id="@+id/strmqtSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/strmqt_menu_settings" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/strmqtCancel"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:text="@string/strmqt_menu_cancel"
+        android:visibility="gone" />
+</LinearLayout>

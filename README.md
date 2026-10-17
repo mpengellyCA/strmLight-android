@@ -1,3 +1,12 @@
+# StrmLight
+
+A fork of [Moonlight for Android](https://github.com/moonlight-stream/moonlight-android) for streaming
+[StrmQt](docs/strmqt-fork.md) from its Sunshine host to Fire TV and Android TV: the TV remote drives StrmQt,
+and the app connects by itself. See [docs/strmqt-fork.md](docs/strmqt-fork.md) and [NOTICE](NOTICE).
+Not affiliated with the Moonlight project. Upstream's README follows.
+
+---
+
 # Moonlight Android
 
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/232a8tadrrn8jv0k/branch/master?svg=true)](https://ci.appveyor.com/project/cgutman/moonlight-android/branch/master)

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the StrmQt fork. Kept apart from Moonlight's strings.xml so upstream merges stay clean. -->
+<resources>
+    <string name="strmqt_the_host">the host</string>
+
+    <!-- Settings -->
+    <string name="strmqt_category">StrmQt</string>
+    <string name="strmqt_pref_setup_title">Set up StrmQt</string>
+    <string name="strmqt_pref_setup_summary">Choose the host and pair with StrmQt</string>
+    <string name="strmqt_pref_pair_again_title">Pair again</string>
+    <string name="strmqt_pref_pair_again_summary">Forget this device\'s pairing with StrmQt and pair with a new code</string>
+    <string name="strmqt_pref_remote_title">StrmQt remote</string>
+    <string name="strmqt_pref_remote_summary">The TV remote drives StrmQt. Game controllers and keyboards work as before. Hold Back for 2 seconds for the menu.</string>
+    <string name="strmqt_pref_transport_title">Remote transport</string>
+    <string name="strmqt_pref_transport_summary">How remote buttons reach StrmQt</string>
+    <string name="strmqt_pref_connect_title">Connect on launch</string>
+    <string name="strmqt_pref_connect_summary">Opening the app goes straight to the StrmQt stream, and reconnects if it drops</string>
+    <string name="strmqt_pref_preset_title">Apply the StrmQt stream preset</string>
+    <string name="strmqt_pref_preset_summary">4K, 30 FPS, HEVC, paced for video. 1080p when this device cannot decode 4K.</string>
+    <string name="strmqt_pref_boot_title">Start with the device</string>
+    <string name="strmqt_pref_boot_summary">Open the stream when the device has booted. Needs a permission granted over adb; see the fork\'s notes.</string>
+    <string name="strmqt_pref_wake_title">Return on wake</string>
+    <string name="strmqt_pref_wake_summary">Bring the stream back when the device wakes. Needs the same permission.</string>
+    <string-array name="strmqt_transport_names">
+        <item>StrmQt Web Remote (recommended)</item>
+        <item>Gamepad buttons through Sunshine</item>
+    </string-array>
+    <string-array name="strmqt_transport_values" translatable="false">
+        <item>web</item>
+        <item>gamepad</item>
+    </string-array>
+    <string name="strmqt_preset_applied_4k">Stream preset applied: 4K, 30 FPS, HEVC.</string>
+    <string name="strmqt_preset_applied_1080p">This device cannot decode 4K HEVC. Stream preset applied: 1080p, 30 FPS, HEVC.</string>
+
+    <!-- In the stream -->
+    <string name="strmqt_hold_back_hint">Hold Back for 2 seconds to open the menu</string>
+    <string name="strmqt_menu_title">StrmQt</string>
+    <string name="strmqt_menu_resume">Return to StrmQt</string>
+    <string name="strmqt_menu_disconnect">Disconnect</string>
+    <string name="strmqt_menu_settings">Settings</string>
+    <string name="strmqt_indicator_down">Remote: StrmQt is not answering</string>
+    <string name="strmqt_indicator_unpaired">Remote: this device was removed in StrmQt. Pair again.</string>
+    <string name="strmqt_indicator_cert_changed">Remote: StrmQt\'s certificate changed. Pair again in Settings.</string>
+    <string name="strmqt_indicator_not_paired">Remote: not paired with StrmQt. Hold Back, then Settings.</string>
+
+    <!-- Launcher and menu -->
+    <string name="strmqt_menu_connect">Connect</string>
+    <string name="strmqt_menu_connect_to">Connect to %1$s</string>
+    <string name="strmqt_menu_setup">Set up StrmQt</string>
+    <string name="strmqt_menu_hosts">Hosts</string>
+    <string name="strmqt_menu_cancel">Cancel</string>
+    <string name="strmqt_status_pair_again">The remote is not paired with StrmQt. Choose Set up StrmQt to pair it.</string>
+    <string name="strmqt_status_not_set_up">Choose Set up StrmQt to find StrmQt and pair with it.</string>
+    <string name="strmqt_status_connecting">Connecting to %1$s…</string>
+    <string name="strmqt_status_waking">Waking %1$s…</string>
+    <string name="strmqt_status_host_offline">%1$s is not answering.</string>
+    <string name="strmqt_status_host_forgotten">The chosen host is no longer in the host list. Choose it again under Set up StrmQt.</string>
+    <string name="strmqt_status_not_paired">This device is not paired with %1$s. Choose Set up StrmQt to pair again.</string>
+    <string name="strmqt_status_no_app">%2$s has no app named %1$s.</string>
+    <string name="strmqt_status_stream_ended">The stream ended.</string>
+    <string name="strmqt_status_retrying">%1$s\nTrying again in %2$d s (attempt %3$d of %4$d).</string>
+    <string name="strmqt_status_gave_up">%1$s\nGave up reconnecting.</string>
+
+    <!-- Setup -->
+    <string name="strmqt_setup_title">Set up StrmQt</string>
+    <string name="strmqt_setup_host_label">StrmQt hosts on this network</string>
+    <string name="strmqt_setup_searching">Searching…</string>
+    <string name="strmqt_setup_found_none">No StrmQt host answered. Check that StrmQt\'s streaming host is running, or enter its address below.</string>
+    <string name="strmqt_setup_found">Choose a host, then Pair.</string>
+    <string name="strmqt_setup_search_failed">Searching failed: %1$s. Enter the address below.</string>
+    <string name="strmqt_setup_search">Search again</string>
+    <string name="strmqt_setup_host_entry">%1$s, %2$s</string>
+    <string name="strmqt_setup_host_entry_no_stream">%1$s, %2$s (cannot stream: no Sunshine)</string>
+    <string name="strmqt_setup_address_label">Or enter StrmQt\'s address</string>
+    <string name="strmqt_setup_port_label">Web Remote port</string>
+    <string name="strmqt_setup_sunshine_port_label">Sunshine port</string>
+    <string name="strmqt_setup_pair_hint">Choose Pair. This screen then shows one code to type into StrmQt; it pairs both the stream and the remote.</string>
+    <string name="strmqt_setup_code_label">Pairing code</string>
+    <string name="strmqt_setup_code_instructions">Type this code into StrmQt under Settings, Web Remote, Pair a StrmLight, or into StrmQt\'s phone remote under Remote, Pair a StrmLight. Typing it once pairs both the stream and the remote.</string>
+    <string name="strmqt_setup_pair">Pair</string>
+    <string name="strmqt_setup_stop">Stop pairing</string>
+    <string name="strmqt_setup_new_code">New code</string>
+    <string name="strmqt_setup_no_address">Choose a host or enter StrmQt\'s address.</string>
+    <string name="strmqt_setup_bad_port">The ports must be numbers from 1 to 65535.</string>
+    <string name="strmqt_setup_pairing">Pairing with StrmQt at %1$s…</string>
+    <string name="strmqt_setup_stopped">Pairing stopped.</string>
+    <string name="strmqt_stream_starting">Stream: contacting StrmQt\'s Sunshine at %1$s:%2$d…</string>
+    <string name="strmqt_stream_waiting">Stream: waiting for the code</string>
+    <string name="strmqt_stream_session_pending">Stream: StrmQt\'s Sunshine still has an earlier pairing attempt open. Typing the code into StrmQt clears it; trying again every 5 s.</string>
+    <string name="strmqt_stream_wrong_pin">Stream: StrmQt\'s Sunshine was given a different code. Type the code on this screen into StrmQt again.</string>
+    <string name="strmqt_stream_refused">Stream: StrmQt\'s Sunshine refused to pair. Trying again in 5 s.</string>
+    <string name="strmqt_stream_unreachable">Stream: StrmQt\'s Sunshine does not answer at %1$s:%2$d. Still trying.</string>
+    <string name="strmqt_stream_paired">Stream: paired</string>
+    <string name="strmqt_remote_starting">Remote: contacting StrmQt\'s Web Remote at %1$s:%2$d…</string>
+    <string name="strmqt_remote_waiting">Remote: waiting for the code</string>
+    <string name="strmqt_remote_wrong_code">Remote: StrmQt was given a different code. Type the code on this screen into StrmQt again.</string>
+    <string name="strmqt_remote_locked_out">Remote: too many wrong codes were typed in. Asking StrmQt again in %1$d s.</string>
+    <string name="strmqt_remote_unreachable">Remote: StrmQt\'s Web Remote does not answer at %1$s:%2$d. Still trying.</string>
+    <string name="strmqt_remote_paired">Remote: paired</string>
+    <string name="strmqt_setup_cert_changed">StrmQt\'s certificate changed while pairing. Choose Pair to start again.</string>
+    <string name="strmqt_setup_cert_not_announced">The Web Remote at %1$s:%2$d does not present the certificate StrmQt announced on the network. Pairing stopped.</string>
+    <string name="strmqt_setup_unsupported">This StrmQt cannot pair with StrmLight by code. Update StrmQt, then pair again.</string>
+    <string name="strmqt_setup_paired">Paired: the stream and the remote. Starting the stream…\nWeb Remote certificate SHA-256:\n%1$s</string>
+    <string name="strmqt_setup_paired_open">Paired: the stream. StrmQt asks for no remote pairing. Starting the stream…\nWeb Remote certificate SHA-256:\n%1$s</string>
+
+    <string name="strmqt_wake_notification">Returning to StrmQt on wake</string>
+</resources>

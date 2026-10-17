@@ -2,6 +2,48 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:seekbar="http://schemas.moonlight-stream.com/apk/res/seekbar">
 
+    <PreferenceCategory android:title="@string/strmqt_category"
+        android:key="category_strmqt">
+        <com.limelight.strmqt.ActionPreference
+            action="setup"
+            android:title="@string/strmqt_pref_setup_title"
+            android:summary="@string/strmqt_pref_setup_summary" />
+        <com.limelight.strmqt.ActionPreference
+            action="pairagain"
+            android:title="@string/strmqt_pref_pair_again_title"
+            android:summary="@string/strmqt_pref_pair_again_summary" />
+        <CheckBoxPreference
+            android:key="strmqt_remote_mode"
+            android:title="@string/strmqt_pref_remote_title"
+            android:summary="@string/strmqt_pref_remote_summary"
+            android:defaultValue="false" />
+        <ListPreference
+            android:key="strmqt_transport"
+            android:title="@string/strmqt_pref_transport_title"
+            android:summary="@string/strmqt_pref_transport_summary"
+            android:entries="@array/strmqt_transport_names"
+            android:entryValues="@array/strmqt_transport_values"
+            android:defaultValue="web" />
+        <CheckBoxPreference
+            android:key="strmqt_connect_on_launch"
+            android:title="@string/strmqt_pref_connect_title"
+            android:summary="@string/strmqt_pref_connect_summary"
+            android:defaultValue="true" />
+        <com.limelight.strmqt.ActionPreference
+            action="preset"
+            android:title="@string/strmqt_pref_preset_title"
+            android:summary="@string/strmqt_pref_preset_summary" />
+        <CheckBoxPreference
+            android:key="strmqt_start_on_boot"
+            android:title="@string/strmqt_pref_boot_title"
+            android:summary="@string/strmqt_pref_boot_summary"
+            android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="strmqt_return_on_wake"
+            android:title="@string/strmqt_pref_wake_title"
+            android:summary="@string/strmqt_pref_wake_summary"
+            android:defaultValue="false" />
+    </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_basic_settings"
         android:key="category_basic_settings">
         <ListPreference

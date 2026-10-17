@@ -29,6 +29,8 @@ import com.limelight.nvstream.input.MouseButtonPacket;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
+import com.limelight.strmqt.RemoteInput;
+import com.limelight.strmqt.StrmQtSession;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
 import com.limelight.utils.Dialog;
@@ -112,6 +114,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private ControllerHandler controllerHandler;
     private KeyboardTranslator keyboardTranslator;
     private VirtualController virtualController;
+    // StrmQt fork: null unless remote mode is on
+    private RemoteInput remoteInput;
 
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
@@ -487,6 +491,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 httpsPort, uniqueId, config,
                 PlatformBinding.getCryptoProvider(this), serverCert);
         controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
+        remoteInput = RemoteInput.create(this, controllerHandler);
         keyboardTranslator = new KeyboardTranslator();
 
         InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
@@ -749,6 +754,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // With Android native pointer capture, capture is lost when focus is lost,
         // so it must be requested again when focus is regained.
         inputCaptureProvider.onWindowFocusChanged(hasFocus);
+        if (remoteInput != null) {
+            remoteInput.onFocusChanged(hasFocus);
+        }
     }
 
     private boolean isRefreshRateEqualMatch(float refreshRate) {
@@ -1036,6 +1044,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onDestroy() {
         super.onDestroy();
 
+        if (remoteInput != null) {
+            remoteInput.destroy();
+        }
         if (controllerHandler != null) {
             controllerHandler.destroy();
         }
@@ -1331,6 +1342,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return false;
         }
 
+        // StrmQt fork: a TV remote's buttons go to StrmQt
+        if (remoteInput != null && remoteInput.handleKey(event)) {
+            return true;
+        }
+
         // Handle a synthetic back button event that some Android OS versions
         // create as a result of a right-click. This event WILL repeat if
         // the right mouse button is held down, so we ignore those.
@@ -1411,6 +1427,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Pass-through virtual navigation keys
         if ((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) != 0) {
             return false;
+        }
+
+        // StrmQt fork: a TV remote's buttons go to StrmQt
+        if (remoteInput != null && remoteInput.handleKey(event)) {
+            return true;
         }
 
         // Handle a synthetic back button event that some Android OS versions
@@ -2273,6 +2294,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                     String dialogText = getResources().getString(R.string.conn_error_msg) + " " + stage +" (error "+errorCode+")";
 
+                    // StrmQt fork: the launcher reconnects instead of showing a dialog
+                    if (StrmQtSession.streamEnded(Game.this, false, dialogText)) {
+                        finish();
+                        return;
+                    }
+
                     if (portFlags != 0) {
                         dialogText += "\n\n" + getResources().getString(R.string.check_ports_msg) + "\n" +
                                 MoonBridge.stringifyPortFlags(portFlags, "\n");
@@ -2311,6 +2338,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     displayedFailureDialog = true;
                     LimeLog.severe("Connection terminated: " + errorCode);
                     stopConnection();
+
+                    // StrmQt fork: the launcher reconnects instead of showing a dialog
+                    if (StrmQtSession.streamEnded(Game.this,
+                            errorCode == MoonBridge.ML_ERROR_GRACEFUL_TERMINATION,
+                            getResources().getString(R.string.conn_terminated_msg))) {
+                        finish();
+                        return;
+                    }
 
                     // Display the error dialog if it was an unexpected termination.
                     // Otherwise, just finish the activity immediately.
@@ -2414,6 +2449,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 connected = true;
                 connecting = false;
                 updatePipAutoEnter();
+
+                StrmQtSession.streamStarted();
+                if (remoteInput != null) {
+                    remoteInput.onStreamStarted();
+                }
 
                 // Hide the mouse cursor now after a short delay.
                 // Doing it before dismissing the spinner seems to be undone
