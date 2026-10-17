@@ -32,7 +32,9 @@ jobs:
           NDK=$(sed -n 's/^ *ndkVersion "\(.*\)"/\1/p' app/build.gradle)
           SDK=$(sed -n 's/^ *compileSdk \([0-9]*\)/\1/p' app/build.gradle)
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-$SDK" "ndk;$NDK" >/dev/null
+          # From API 36 on, a platform is named with its minor version (android-37.0).
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-$SDK.0" "ndk;$NDK" >/dev/null \
+            || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-$SDK" "ndk;$NDK" >/dev/null
 
       - name: Unit tests
         run: ./gradlew --no-daemon :app:testNonRootDebugUnitTest
