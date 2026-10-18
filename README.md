@@ -17,7 +17,7 @@ Android 5.0 or newer. It installs beside Moonlight and leaves Moonlight's settin
 
 ## Set up
 
-You need StrmQt 0.9.0 or newer on the computer, with its streaming host set up once: StrmQt › Settings › StrmLight › **Streaming host**.
+You need StrmQt 0.9.1 or newer on the computer, with its streaming host set up once: StrmQt › Settings › StrmLight › **Streaming host**.
 
 1. Open StrmLight. It looks for StrmQt on your network and shows a four-digit code. If it finds more than one StrmQt it asks which, by name.
 2. Type the code into StrmQt, under Settings › StrmLight › **Pair a StrmLight**, or on StrmQt's phone remote under **Pair a StrmLight**. Nothing is typed on the TV.
@@ -33,7 +33,7 @@ From then on, opening StrmLight goes straight to StrmQt. Hold **Back** for two s
 
 - **Finds StrmQt by itself** with a UDP broadcast to port 8338, answered only on the local network.
 - **One code pairs everything.** The code StrmLight shows is also its Moonlight PIN: StrmQt arms its remote with it and enters it into its own Sunshine.
-- **Streams only StrmQt's own Sunshine.** StrmQt vouches for its Sunshine's certificate over the pinned Web Remote, and StrmLight streams only from the Sunshine its StrmQt vouches for: a plain Sunshine, or the desktop's own on the same machine, is refused. This needs a StrmQt newer than 0.9.0; an older one is refused with a message to update it.
+- **Streams only StrmQt's own Sunshine.** StrmQt vouches for its Sunshine's certificate over the pinned Web Remote, and StrmLight streams only from the Sunshine its StrmQt vouches for: a plain Sunshine, or the desktop's own on the same machine, is refused. This needs StrmQt 0.9.1 or newer; an older one is refused with a message to update it.
 - **The remote goes straight to StrmQt** through StrmQt's Web Remote, pinned to its certificate, rather than as key presses through the stream.
 - **StrmQt sets the picture and sound.** Resolution, frame rate, bitrate, codec and sound are chosen in StrmQt (Settings › StrmLight › Picture and sound) and sent to StrmLight before every stream; StrmLight steps down to what the TV can decode (AV1 to HEVC to H.264, 60 to 30 fps, 4K to 1440p to 1080p). Those rows in StrmLight's own Settings are greyed out and say so. With an older StrmQt, StrmLight applies its own preset once instead (4K, 30 fps, HEVC, or 1080p when the TV cannot decode 4K HEVC).
 - **Connects on launch and reconnects** by itself after a dropped stream.

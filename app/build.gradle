@@ -14,8 +14,8 @@ android {
         // StrmQt fork: StrmLight's own version, released beside StrmQt's.
         // Based on Moonlight 12.2 (versionCode 315); com.strmlight never had
         // a lower code than this.
-        versionName "0.9.0"
-        versionCode = 900
+        versionName "0.9.1"
+        versionCode = 901
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'
