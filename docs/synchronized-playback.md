@@ -216,6 +216,12 @@ When it is on, nobody waits for a fixed buffer: **every TV lines up on the slowe
   later change of *D* is a jump, not another wait. Its latency is measured the same way
   before and after it is scheduled (what the track has played but not yet heard, plus what
   scheduling keeps written ahead of it), so its first reports do not overshoot.
+- **What is reported.** Nothing in a stream's first 10 s, whose arrivals come in a burst.
+  After that, sound reports the latest arrival over 10 s (every packet must be in time),
+  and the picture how late it typically is, the median of the window's 2 s slices: every
+  TV's picture stalls for about half a second when a TV joins the host, and a picture that
+  misses its time is only shown a little late. Reporting the latest picture let each join
+  raise *D* for every TV until the video stopped.
 - **Fire TV.** Audio paths of 300–500 ms have been reported on some models and firmware
   (moonlight-android issues #1238, #1423). A TV like that becomes the slowest, and the
   others wait for it.
@@ -237,8 +243,10 @@ AVR. Every shipping product handles it with a per-device offset:
 - Squeezebox's `playDelay`.
 
 So:
-- **A per-TV offset in ms.** It is kept on the host by device and set from the TV's
-  settings or StrmQt's.
+- **A per-TV offset in ms.** StrmLight's Settings › Sound offset, 50 ms later to 500 ms
+  earlier (by 5 ms near zero), kept on the TV and set by ear. The TV plays its sound that
+  much earlier and counts it in its latency. A Fire TV Stick 4K Max, whose sound goes
+  through Dolby MS12, needed 5 ms later: its own measurement was that far off.
 - **Lower and steadier TV latency.** `Window.setPreferMinimalPostProcessing(true)` asks
   the TV for its game mode (ALLM) over HDMI.
 - **PCM audio out.** Avoid Dolby re-encode and passthrough, whose latency may not show in
