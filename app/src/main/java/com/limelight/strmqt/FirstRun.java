@@ -171,6 +171,24 @@ final class FirstRun {
         return false;
     }
 
+    /**
+     * One StrmQt per StrmLight: the computers in Moonlight's list to remove once
+     * `keep` (the one just paired) is in it. Several TVs can share a StrmQt, but
+     * a TV streams from one.
+     */
+    static List<String> toForget(List<String> known, String keep) {
+        List<String> forget = new ArrayList<>();
+        if (known == null || keep == null) {
+            return forget;
+        }
+        for (String uuid : known) {
+            if (uuid != null && !uuid.equalsIgnoreCase(keep)) {
+                forget.add(uuid);
+            }
+        }
+        return forget;
+    }
+
     static StrmQtDiscovery.Host byAddress(List<StrmQtDiscovery.Host> hosts, String address) {
         if (address == null) {
             return null;

@@ -160,6 +160,16 @@ public class FirstRunTest {
     // The chooser
 
     @Test
+    public void aStrmLightKeepsOnlyTheStrmQtItJustPaired() {
+        // Several TVs can share a StrmQt, but a TV streams from one: the rest go.
+        assertEquals(Arrays.asList("den", "older"),
+                FirstRun.toForget(Arrays.asList("den", "LOFT", "older"), "loft"));
+        assertEquals(Collections.emptyList(), FirstRun.toForget(Arrays.asList("loft"), "loft"));
+        assertEquals(Collections.emptyList(), FirstRun.toForget(null, "loft"));
+        assertEquals(Collections.emptyList(), FirstRun.toForget(Arrays.asList("den"), null));
+    }
+
+    @Test
     public void theChooserListsUsableHostsWithTheStoredOneFirst() {
         List<StrmQtDiscovery.Host> list = FirstRun.forChooser(hosts(DEN, NO_STREAM, LOFT), LOFT.address);
         assertEquals(Arrays.asList(LOFT, DEN), list);

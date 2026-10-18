@@ -23,6 +23,8 @@ You need StrmQt 0.9.0 or newer on the computer, with its streaming host set up o
 2. Type the code into StrmQt, under Settings › StrmLight › **Pair a StrmLight**, or on StrmQt's phone remote under **Pair a StrmLight**. Nothing is typed on the TV.
 3. That one code pairs both the picture and the remote. StrmLight says *Connected* and starts the stream.
 
+StrmLight streams from one StrmQt at a time; pairing with another makes it forget the one before. Several TVs can pair with the same StrmQt.
+
 From then on, opening StrmLight goes straight to StrmQt. Hold **Back** for two seconds while streaming for StrmLight's menu: Return to StrmQt, Disconnect, Settings.
 
 **Advanced setup**, on every setup screen, has what the simple path hides: entering the host by hand (address, Web Remote port 8338, Sunshine port, 8335 by default), the certificate fingerprint, and the stream settings.

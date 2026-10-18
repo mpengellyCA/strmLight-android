@@ -50,6 +50,8 @@ behind **Advanced setup**.
    TV.
 4. **Connected.** When both halves are paired the screen says so, applies
    the stream preset the first time, and starts the stream 2.5 s later.
+   A StrmLight keeps one StrmQt: pairing removes every other computer from
+   Moonlight's list (`FirstRun.toForget`). Several TVs can share one StrmQt.
    From then on, opening the app goes straight to the stream, and holding
    Back in the stream opens the fork's menu, as before.
 

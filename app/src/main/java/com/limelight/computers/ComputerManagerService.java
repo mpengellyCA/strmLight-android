@@ -290,6 +290,17 @@ public class ComputerManagerService extends Service {
             return null;
         }
 
+        /** StrmQt fork: every computer in the list, for StrmLight's one StrmQt (SetupActivity). */
+        public java.util.List<ComputerDetails> getComputers() {
+            java.util.List<ComputerDetails> computers = new java.util.ArrayList<>();
+            synchronized (pollingTuples) {
+                for (PollingTuple tuple : pollingTuples) {
+                    computers.add(tuple.computer);
+                }
+            }
+            return computers;
+        }
+
         public void invalidateStateForComputer(String uuid) {
             synchronized (pollingTuples) {
                 for (PollingTuple tuple : pollingTuples) {

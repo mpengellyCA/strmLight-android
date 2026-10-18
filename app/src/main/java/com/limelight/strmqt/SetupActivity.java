@@ -29,6 +29,7 @@ import com.limelight.BuildConfig;
 import com.limelight.LimeLog;
 import com.limelight.R;
 import com.limelight.computers.ComputerManagerService;
+import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.preferences.StreamSettings;
 import com.limelight.utils.UiHelper;
 
@@ -1036,6 +1037,7 @@ public class SetupActivity extends Activity {
         prefs.setSunshineFingerprint(result.sunshineFingerprint);
         prefs.setRemoteMode(true);
         prefs.setComputer(result.computerUuid, c.name != null ? c.name : result.computerName);
+        forgetOtherHosts(result.computerUuid);
         showCert(result.fingerprint);
 
         String message = getString(result.token != null ? R.string.strmqt_setup_paired
@@ -1061,6 +1063,27 @@ public class SetupActivity extends Activity {
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
             finish();
         }, START_AFTER_PAIRING_MS);
+    }
+
+    /** Removes from Moonlight's list every computer but the StrmQt just paired. */
+    private void forgetOtherHosts(String keep) {
+        final ComputerManagerService.ComputerManagerBinder manager = binder;
+        if (manager == null || keep == null) {
+            return;
+        }
+        new Thread(() -> {
+            List<String> known = new ArrayList<>();
+            for (ComputerDetails computer : manager.getComputers()) {
+                known.add(computer.uuid);
+            }
+            for (String uuid : FirstRun.toForget(known, keep)) {
+                ComputerDetails computer = manager.getComputer(uuid);
+                if (computer != null) {
+                    LimeLog.info("StrmQt: forgetting " + computer.name + ", paired before this StrmQt");
+                    manager.removeComputer(computer);
+                }
+            }
+        }, "StrmQt one host").start();
     }
 
     private void stopPairing(String message) {
