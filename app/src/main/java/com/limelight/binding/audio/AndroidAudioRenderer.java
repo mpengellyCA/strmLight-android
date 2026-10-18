@@ -283,6 +283,18 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private static final long TIMESTAMP_EVERY_NS = 200_000_000L;
         // Allowed for decoding and handing over, in the latency reported.
         private static final long SLACK_NS = 2_000_000L;
+        // Scheduled, at most this much is written ahead of what the track
+        // has played. A track takes far more than it was asked for, and what
+        // it holds is latency, which the host would make every TV wait for.
+        private static final int AHEAD_MS = 60;
+        // How much of each timestamp reading (5 a second) goes into frame 0's time.
+        private static final double FRAME_ZERO_SMOOTHING = 0.1;
+        // A reading this far off is a real change (an underrun the count missed).
+        private static final double FRAME_ZERO_JUMP_NS = 30e6;
+        // How much of each packet's error goes into the smoothed one.
+        private static final double SMOOTHING = 0.05;
+        // Seconds of measurement before this TV's latency is reported.
+        private static final int LEADS_BEFORE_REPORT = 5;
 
         private final class Packet {
             final short[] pcm;
@@ -300,6 +312,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private final int channels;
         private final int sampleRate;
         private final short[] silence;
+        private final long aheadFrames;
         private final ArrayBlockingQueue<Packet> queue = new ArrayBlockingQueue<>(QUEUE);
         private final AudioSchedule schedule = new AudioSchedule();
         private final AudioTimestamp stamp = new AudioTimestamp();
@@ -308,13 +321,26 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
         // The writer thread's own.
         private long written;
-        private long stampFrame;
-        private long stampNs;
+        // When frame 0 would be heard, from the track's timestamps, smoothed:
+        // some tracks' timestamps move a chunk at a time, many ms apart.
+        private double frameZeroNs;
+        private boolean haveFrameZero;
         private long stampReadAt;
         private int underruns;
         private long leadNs;
         private long leadSince;
         private long leadMostNs;
+        // The last ten seconds' most, of which the median is reported: one
+        // odd second does not move every TV.
+        private final long[] leads = new long[10];
+        private int leadCount;
+        private int jumps;
+        private int nudges;
+        private int nudgesEarly;
+        private long errorMinNs = Long.MAX_VALUE;
+        private long errorMaxNs = Long.MIN_VALUE;
+        private double reportedMs = -1;
+        private double smoothedErrorNs;
         private long statusAt;
         // Counted on the decoder's thread, read on this one for the status line.
         private volatile int arrivals;
@@ -325,6 +351,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
             this.channels = channels;
             this.sampleRate = sampleRate;
             this.silence = new short[samplesPerFrame * channels];
+            this.aheadFrames = Math.max(2L * samplesPerFrame, (long) sampleRate * AHEAD_MS / 1000);
             this.thread = new Thread(this, "StrmQt audio");
             thread.setPriority(Thread.MAX_PRIORITY);
         }
@@ -356,7 +383,8 @@ public class AndroidAudioRenderer implements AudioRenderer {
                     schedule.arrived(tsMs, clock.at(arrivedNs), arrivedNs);
                 }
             }
-            if (!queue.offer(new Packet(pcm, tsMs, arrivedNs))) {
+            // The decoder fills one array for every packet; this one plays later.
+            if (!queue.offer(new Packet(pcm.clone(), tsMs, arrivedNs))) {
                 LimeLog.info("StrmQt audio: queue full, a packet dropped");
             }
         }
@@ -369,6 +397,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
             try {
                 while (!stopped) {
                     int delayMs = PlayTogether.delayMs();
+                    if (delayMs > 0 && written - (track.getPlaybackHeadPosition() & 0xFFFFFFFFL) >= aheadFrames) {
+                        Thread.sleep(2);
+                        continue;
+                    }
                     if (packet == null) {
                         // Scheduled, silence goes in when nothing is due; as
                         // soon as it can, nothing is written until there is
@@ -388,7 +420,13 @@ public class AndroidAudioRenderer implements AudioRenderer {
                         LimeLog.info("StrmQt audio: " + arrivals + " packets (" + untimed + " untimed), queue "
                                 + queue.size() + ", track time " + (playAt != null ? (playAt - now) / 1_000_000 + " ms ahead" : "none")
                                 + ", host clock " + (clock != null ? "yes" : "no") + ", base " + (base != null ? "yes" : "no")
-                                + ", late " + schedule.lateNs(now) / 1_000_000 + " ms, delay " + delayMs + " ms");
+                                + ", late " + schedule.lateNs(now) / 1_000_000 + " ms, delay " + delayMs + " ms"
+                                + ", reported " + Math.round(reportedMs) + " ms, " + jumps + " jumps, " + nudges
+                                + " nudges (" + nudgesEarly + " early), " + underruns + " underruns"
+                                + String.format(java.util.Locale.ROOT, ", error %.2f ms smoothed, %.2f..%.2f ms raw",
+                                        smoothedErrorNs / 1e6, errorMinNs / 1e6, errorMaxNs / 1e6));
+                        errorMinNs = Long.MAX_VALUE;
+                        errorMaxNs = Long.MIN_VALUE;
                     }
                     if (delayMs <= 0 || playAt == null || clock == null || base == null) {
                         if (packet != null) {
@@ -407,28 +445,46 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
                     long due = clock.localAt(AudioSchedule.dueNs(base, packet.tsMs, frame, sampleRate, delayMs));
                     long error = playAt - due;
-                    PlayTogether together = PlayTogether.current();
-                    if (together != null) {
-                        together.setErrorNs(error);
-                    }
                     int frames = packet.pcm.length / channels;
+                    // Far off: at once, from this error. Close: a frame at
+                    // most each packet, from the smoothed error, since the
+                    // track's timestamp wobbles by more than a frame.
                     int correction = AudioSchedule.correction(error, sampleRate);
-                    if (correction > 0) {
-                        // Late: skip what would be heard late.
-                        frame += correction;
-                        if (frame >= frames) {
-                            packet = null;
+                    if (correction > 1 || correction < -1) {
+                        jumps++;
+                        smoothedErrorNs = 0;
+                        if (correction > 0) {
+                            // Late: skip what would be heard late.
+                            frame += correction;
+                            if (frame >= frames) {
+                                packet = null;
+                            }
+                        } else {
+                            // Early: wait, playing silence.
+                            write(silence, 0, Math.min(-correction, silence.length / channels));
                         }
                         continue;
                     }
-                    if (correction < -1) {
-                        // Early: wait, playing silence.
-                        write(silence, 0, Math.min(-correction, silence.length / channels));
-                        continue;
+                    smoothedErrorNs += (error - smoothedErrorNs) * SMOOTHING;
+                    errorMinNs = Math.min(errorMinNs, error);
+                    errorMaxNs = Math.max(errorMaxNs, error);
+                    PlayTogether together = PlayTogether.current();
+                    if (together != null) {
+                        together.setErrorNs(Math.round(smoothedErrorNs));
                     }
-                    if (correction == -1) {
+                    int nudge = AudioSchedule.correction(Math.round(smoothedErrorNs), sampleRate);
+                    long frameNs = 1_000_000_000L / sampleRate;
+                    if (nudge > 0 && frame + 1 < frames) {
+                        // A little late: one frame left out.
+                        nudges++;
+                        frame++;
+                        smoothedErrorNs -= frameNs;
+                    } else if (nudge < 0) {
                         // A little early: one frame twice.
+                        nudges++;
+                        nudgesEarly++;
                         write(packet.pcm, frame, 1);
+                        smoothedErrorNs += frameNs;
                     }
                     write(packet.pcm, frame, frames - frame);
                     packet = null;
@@ -452,18 +508,25 @@ public class AndroidAudioRenderer implements AudioRenderer {
         /** When the next frame written will be heard, on System.nanoTime; null until the track says. */
         private Long playTimeOfNextWrite(long now) {
             int underrunsNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? track.getUnderrunCount() : 0;
-            if (stampNs == 0 || now - stampReadAt > TIMESTAMP_EVERY_NS || underrunsNow != underruns) {
+            boolean underran = underrunsNow != underruns;
+            if (!haveFrameZero || now - stampReadAt > TIMESTAMP_EVERY_NS || underran) {
                 underruns = underrunsNow;
                 stampReadAt = now;
                 if (track.getTimestamp(stamp) && stamp.nanoTime != 0) {
-                    stampFrame = stamp.framePosition;
-                    stampNs = stamp.nanoTime;
+                    double reading = stamp.nanoTime - stamp.framePosition * 1e9 / sampleRate;
+                    if (!haveFrameZero || underran || Math.abs(reading - frameZeroNs) > FRAME_ZERO_JUMP_NS) {
+                        // A gap in what was heard, or the first reading.
+                        frameZeroNs = reading;
+                        haveFrameZero = true;
+                    } else {
+                        frameZeroNs += (reading - frameZeroNs) * FRAME_ZERO_SMOOTHING;
+                    }
                 }
             }
-            if (stampNs == 0) {
+            if (!haveFrameZero) {
                 return null;
             }
-            return stampNs + (written - stampFrame) * 1_000_000_000L / sampleRate;
+            return Math.round(frameZeroNs + written * 1e9 / sampleRate);
         }
 
         /** As soon as it can: at most ASAP_PENDING_NS waits, as upstream. */
@@ -484,12 +547,16 @@ public class AndroidAudioRenderer implements AudioRenderer {
             if (now - leadSince < 1_000_000_000L) {
                 return;
             }
-            leadNs = leadMostNs;
+            leads[leadCount++ % leads.length] = leadMostNs;
             leadMostNs = 0;
             leadSince = now;
+            long[] sorted = java.util.Arrays.copyOf(leads, Math.min(leadCount, leads.length));
+            java.util.Arrays.sort(sorted);
+            leadNs = sorted[sorted.length / 2];
             PlayTogether together = PlayTogether.current();
-            if (together != null && schedule.baseNs(now) != null) {
-                together.setLatencyMs((schedule.lateNs(now) + leadNs + SLACK_NS) / 1e6);
+            if (together != null && schedule.baseNs(now) != null && leadCount >= LEADS_BEFORE_REPORT) {
+                reportedMs = (schedule.lateNs(now) + leadNs + SLACK_NS) / 1e6;
+                together.setLatencyMs(reportedMs);
             }
         }
     }

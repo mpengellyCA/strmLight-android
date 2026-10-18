@@ -21,10 +21,10 @@ public final class AudioSchedule {
     /** Arrivals before the base is believed: a quarter second of 5 ms packets. */
     static final int MIN_ARRIVALS = 50;
 
-    /** Closer than this is on time. */
-    static final long DEADBAND_NS = 250_000;
+    /** Closer than this is on time: a track's timestamp is not steadier than that. */
+    static final long DEADBAND_NS = 1_000_000;
     /** Off by this much or more, the error is taken out at once, not a frame at a time. */
-    static final long JUMP_NS = 10_000_000;
+    static final long JUMP_NS = 20_000_000;
 
     private final long[] sliceId = new long[SLICES];
     private final long[] least = new long[SLICES];
@@ -97,6 +97,8 @@ public final class AudioSchedule {
      * is not heard; large ones at once.
      */
     public static int correction(long errorNs, int sampleRate) {
+        // Called once a packet, with the error smoothed over packets for the
+        // small corrections; see AndroidAudioRenderer's scheduler.
         long abs = Math.abs(errorNs);
         if (abs < DEADBAND_NS) {
             return 0;
