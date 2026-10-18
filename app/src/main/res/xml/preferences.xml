@@ -44,6 +44,13 @@
             android:title="@string/strmqt_pref_wake_title"
             android:summary="@string/strmqt_pref_wake_summary"
             android:defaultValue="false" />
+        <ListPreference
+            android:key="strmqt_sound_offset"
+            android:title="@string/strmqt_pref_offset_title"
+            android:summary="@string/strmqt_pref_offset_summary"
+            android:entries="@array/strmqt_sound_offset_names"
+            android:entryValues="@array/strmqt_sound_offset_values"
+            android:defaultValue="0" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_basic_settings"
         android:key="category_basic_settings">

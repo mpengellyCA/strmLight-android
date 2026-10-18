@@ -34,6 +34,7 @@ public final class MediaSchedule {
     private final long[] least = new long[SLICES];
     private final long[] most = new long[SLICES];
     private int arrivals;
+    private long firstArrivalNs;
 
     public MediaSchedule() {
         java.util.Arrays.fill(sliceId, Long.MIN_VALUE);
@@ -55,7 +56,19 @@ public final class MediaSchedule {
             least[i] = Math.min(least[i], q);
             most[i] = Math.max(most[i], q);
         }
-        arrivals++;
+        if (arrivals++ == 0) {
+            firstArrivalNs = localArrivalNs;
+        }
+    }
+
+    /**
+     * Whether the window has moved past the stream's first moments, whose
+     * arrivals come in a burst (the first picture is the largest, and what
+     * queued while the stream started): until then {@link #lateNs} is how
+     * late the start was, not how late packets are.
+     */
+    public synchronized boolean pastStart(long localNowNs) {
+        return arrivals > 0 && localNowNs - firstArrivalNs >= SLICES * SLICE_NS;
     }
 
     /** The host time of ts 0; null until enough has arrived. */
@@ -87,6 +100,32 @@ public final class MediaSchedule {
             }
         }
         return late;
+    }
+
+    /**
+     * How much later than the fastest packets usually arrive: the median over
+     * the window's slices of each one's latest, so a slice with one very late
+     * burst does not count. For video, where a frame that misses its time is
+     * shown a little late, not lost; 0 until known.
+     */
+    public synchronized long typicalLateNs(long localNowNs) {
+        Long base = baseNs(localNowNs);
+        if (base == null) {
+            return 0;
+        }
+        long now = Math.floorDiv(localNowNs, SLICE_NS);
+        long[] lates = new long[SLICES];
+        int n = 0;
+        for (int i = 0; i < SLICES; i++) {
+            if (sliceId[i] > now - SLICES && sliceId[i] <= now) {
+                lates[n++] = most[i] - base;
+            }
+        }
+        if (n == 0) {
+            return 0;
+        }
+        java.util.Arrays.sort(lates, 0, n);
+        return lates[n / 2];
     }
 
     /** The host time audio `frame` frames into the packet of `tsMs` is due, `delayMs` behind. */

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Settings > Sound offset: 0 to StrmQtPrefs.MAX_SOUND_OFFSET_MS, by 10 ms. -->
+    <string-array name="strmqt_sound_offset_names" translatable="false">
+        <item>None</item>
+        <item>10 ms earlier</item>
+        <item>20 ms earlier</item>
+        <item>30 ms earlier</item>
+        <item>40 ms earlier</item>
+        <item>50 ms earlier</item>
+        <item>60 ms earlier</item>
+        <item>70 ms earlier</item>
+        <item>80 ms earlier</item>
+        <item>90 ms earlier</item>
+        <item>100 ms earlier</item>
+        <item>110 ms earlier</item>
+        <item>120 ms earlier</item>
+        <item>130 ms earlier</item>
+        <item>140 ms earlier</item>
+        <item>150 ms earlier</item>
+        <item>160 ms earlier</item>
+        <item>170 ms earlier</item>
+        <item>180 ms earlier</item>
+        <item>190 ms earlier</item>
+        <item>200 ms earlier</item>
+        <item>210 ms earlier</item>
+        <item>220 ms earlier</item>
+        <item>230 ms earlier</item>
+        <item>240 ms earlier</item>
+        <item>250 ms earlier</item>
+        <item>260 ms earlier</item>
+        <item>270 ms earlier</item>
+        <item>280 ms earlier</item>
+        <item>290 ms earlier</item>
+        <item>300 ms earlier</item>
+        <item>310 ms earlier</item>
+        <item>320 ms earlier</item>
+        <item>330 ms earlier</item>
+        <item>340 ms earlier</item>
+        <item>350 ms earlier</item>
+        <item>360 ms earlier</item>
+        <item>370 ms earlier</item>
+        <item>380 ms earlier</item>
+        <item>390 ms earlier</item>
+        <item>400 ms earlier</item>
+        <item>410 ms earlier</item>
+        <item>420 ms earlier</item>
+        <item>430 ms earlier</item>
+        <item>440 ms earlier</item>
+        <item>450 ms earlier</item>
+        <item>460 ms earlier</item>
+        <item>470 ms earlier</item>
+        <item>480 ms earlier</item>
+        <item>490 ms earlier</item>
+        <item>500 ms earlier</item>
+    </string-array>
+    <string-array name="strmqt_sound_offset_values" translatable="false">
+        <item>0</item>
+        <item>10</item>
+        <item>20</item>
+        <item>30</item>
+        <item>40</item>
+        <item>50</item>
+        <item>60</item>
+        <item>70</item>
+        <item>80</item>
+        <item>90</item>
+        <item>100</item>
+        <item>110</item>
+        <item>120</item>
+        <item>130</item>
+        <item>140</item>
+        <item>150</item>
+        <item>160</item>
+        <item>170</item>
+        <item>180</item>
+        <item>190</item>
+        <item>200</item>
+        <item>210</item>
+        <item>220</item>
+        <item>230</item>
+        <item>240</item>
+        <item>250</item>
+        <item>260</item>
+        <item>270</item>
+        <item>280</item>
+        <item>290</item>
+        <item>300</item>
+        <item>310</item>
+        <item>320</item>
+        <item>330</item>
+        <item>340</item>
+        <item>350</item>
+        <item>360</item>
+        <item>370</item>
+        <item>380</item>
+        <item>390</item>
+        <item>400</item>
+        <item>410</item>
+        <item>420</item>
+        <item>430</item>
+        <item>440</item>
+        <item>450</item>
+        <item>460</item>
+        <item>470</item>
+        <item>480</item>
+        <item>490</item>
+        <item>500</item>
+    </string-array>
+</resources>

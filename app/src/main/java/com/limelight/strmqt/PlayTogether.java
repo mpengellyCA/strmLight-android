@@ -91,6 +91,16 @@ public final class PlayTogether {
         errorNs = error;
     }
 
+    /**
+     * Whether `delay` counts this TV: its sound and its picture are both
+     * measured, and the delay is no less than the slower of them.
+     */
+    public boolean counted(int delay) {
+        double audio = latencyMs;
+        double video = videoLatencyMs;
+        return audio >= 0 && video >= 0 && delay >= Math.max(audio, video);
+    }
+
     /** Whether the host has answered yet, so that a delay of 0 is its. */
     public boolean answered() {
         return tvs > 0;

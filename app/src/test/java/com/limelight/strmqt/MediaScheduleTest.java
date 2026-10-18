@@ -41,6 +41,32 @@ public class MediaScheduleTest {
     }
 
     @Test
+    public void howLateTheStartWasIsForgotten() {
+        MediaSchedule schedule = new MediaSchedule();
+        // The first packets queued while the stream started: 700 ms late.
+        for (int i = 0; i < 20; i++) {
+            schedule.arrived(5L * i * MS, 700 * MS + 5L * i * MS, 5L * i * MS);
+        }
+        long now = stream(schedule, 0, 0, MS, 0, 400, 100);
+        assertEquals(false, schedule.pastStart(now));
+        assertEquals(699 * MS, schedule.lateNs(now), 2 * MS);
+        // Once the window has moved past them, late is how late packets are.
+        now = stream(schedule, 0, 0, MS, 0, 2400, 100);
+        assertEquals(true, schedule.pastStart(now));
+        assertEquals(0, schedule.lateNs(now), MS);
+    }
+
+    @Test
+    public void typicallyLateLeavesOutOneLateBurst() {
+        MediaSchedule schedule = new MediaSchedule();
+        long now = stream(schedule, 0, 0, MS, 0, 2000, 0);
+        // One packet half a second late.
+        schedule.arrived(10_000 * MS, 10_500 * MS, now);
+        assertEquals(499 * MS, schedule.lateNs(now), MS);
+        assertEquals(0, schedule.typicalLateNs(now), MS);
+    }
+
+    @Test
     public void notEnoughArrivalsIsNoBase() {
         MediaSchedule schedule = new MediaSchedule();
         long now = stream(schedule, 0, 0, MS, 0, MediaSchedule.MIN_ARRIVALS - 1, 0);

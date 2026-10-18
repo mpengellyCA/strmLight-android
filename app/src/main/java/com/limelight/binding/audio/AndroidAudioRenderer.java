@@ -17,6 +17,7 @@ import com.limelight.strmqt.MediaSchedule;
 import com.limelight.strmqt.ClockEstimate;
 import com.limelight.strmqt.HostClock;
 import com.limelight.strmqt.PlayTogether;
+import com.limelight.strmqt.StrmQtPrefs;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -195,7 +196,8 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
         HostClock hostClock = HostClock.current();
         if (hostClock != null) {
-            scheduler = new Scheduler(hostClock, audioConfiguration.channelCount, sampleRate, samplesPerFrame);
+            scheduler = new Scheduler(hostClock, audioConfiguration.channelCount, sampleRate, samplesPerFrame,
+                    new StrmQtPrefs(context).soundOffsetMs());
         }
 
         return 0;
@@ -298,7 +300,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
         // Scheduled this long with no jump, a TV is in step.
         private static final long IN_STEP_NS = 1_000_000_000L;
         // A TV that joins is held no longer than this, in step or not.
-        private static final long HELD_AT_MOST_NS = 15_000_000_000L;
+        private static final long HELD_AT_MOST_NS = 30_000_000_000L;
 
         private final class Packet {
             final short[] pcm;
@@ -317,6 +319,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private final int sampleRate;
         private final short[] silence;
         private final long aheadFrames;
+        // Heard this much after the track says (StrmQtPrefs.soundOffsetMs), so
+        // written that much earlier, and counted in the latency reported.
+        private final long offsetNs;
         private final ArrayBlockingQueue<Packet> queue = new ArrayBlockingQueue<>(QUEUE);
         private final MediaSchedule schedule = new MediaSchedule();
         private final AudioTimestamp stamp = new AudioTimestamp();
@@ -360,8 +365,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private volatile int arrivals;
         private volatile int untimed;
 
-        Scheduler(HostClock hostClock, int channels, int sampleRate, int samplesPerFrame) {
+        Scheduler(HostClock hostClock, int channels, int sampleRate, int samplesPerFrame, int offsetMs) {
             this.hostClock = hostClock;
+            this.offsetNs = offsetMs * 1_000_000L;
             this.channels = channels;
             this.sampleRate = sampleRate;
             this.silence = new short[samplesPerFrame * channels];
@@ -440,7 +446,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
                         LimeLog.info("StrmQt audio: " + arrivals + " packets (" + untimed + " untimed), queue "
                                 + queue.size() + ", track time " + (playAt != null ? (playAt - now) / 1_000_000 + " ms ahead" : "none")
                                 + ", host clock " + (clock != null ? "yes" : "no") + ", base " + (base != null ? "yes" : "no")
-                                + ", late " + schedule.lateNs(now) / 1_000_000 + " ms, delay " + delayMs + " ms"
+                                + ", late " + schedule.lateNs(now) / 1_000_000 + " ms, delay " + delayMs + " ms, offset " + offsetNs / 1_000_000 + " ms"
                                 + ", reported " + Math.round(reportedMs) + " ms, " + jumps + " jumps, " + nudges
                                 + " nudges (" + nudgesEarly + " early), " + underruns + " underruns"
                                 + String.format(java.util.Locale.ROOT, ", error %.2f ms smoothed, %.2f..%.2f ms raw",
@@ -465,7 +471,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
                         continue;
                     }
 
-                    long due = clock.localAt(MediaSchedule.dueNs(base, packet.tsMs, frame, sampleRate, delayMs));
+                    long due = clock.localAt(MediaSchedule.dueNs(base, packet.tsMs, frame, sampleRate, delayMs)) - offsetNs;
                     long error = playAt - due;
                     int frames = packet.pcm.length / channels;
                     // Far off: at once, from this error. Close: a frame at
@@ -536,7 +542,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
                     if (heldSince == 0) {
                         heldSince = now;
                     }
-                    settled = inStep && reportedMs >= 0 && delayMs >= reportedMs
+                    settled = inStep && together != null && together.counted(delayMs)
                             || now - heldSince > HELD_AT_MOST_NS;
                 } else {
                     settled = together != null && together.answered()
@@ -618,8 +624,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
             java.util.Arrays.sort(sorted);
             leadNs = sorted[sorted.length / 2];
             PlayTogether together = PlayTogether.current();
-            if (together != null && schedule.baseNs(now) != null && leadCount >= LEADS_BEFORE_REPORT) {
-                reportedMs = (schedule.lateNs(now) + leadNs + SLACK_NS) / 1e6;
+            if (together != null && schedule.baseNs(now) != null && schedule.pastStart(now)
+                    && leadCount >= LEADS_BEFORE_REPORT) {
+                reportedMs = (schedule.lateNs(now) + leadNs + offsetNs + SLACK_NS) / 1e6;
                 together.setLatencyMs(reportedMs);
             }
         }

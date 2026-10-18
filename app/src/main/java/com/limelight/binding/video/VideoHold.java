@@ -191,8 +191,11 @@ final class VideoHold implements Runnable {
         statusAt = now;
         PlayTogether together = PlayTogether.current();
         Long base = schedule.baseNs(now);
-        if (together != null && base != null) {
-            together.setVideoLatencyMs((schedule.lateNs(now) + DECODE_NS) / 1e6);
+        if (together != null && base != null && schedule.pastStart(now)) {
+            // Typical, not the latest: a picture that misses its time is
+            // shown a little late, while one late burst would hold back
+            // every TV.
+            together.setVideoLatencyMs((schedule.typicalLateNs(now) + DECODE_NS) / 1e6);
         }
         if (status) {
             int size;
@@ -200,7 +203,7 @@ final class VideoHold implements Runnable {
                 size = queue.size();
             }
             LimeLog.info("StrmQt video: queue " + size + ", base " + (base != null ? "yes" : "no")
-                    + ", late " + schedule.lateNs(now) / 1_000_000 + " ms, delay " + PlayTogether.delayMs()
+                    + ", late " + schedule.lateNs(now) / 1_000_000 + " ms (typically " + schedule.typicalLateNs(now) / 1_000_000 + "), delay " + PlayTogether.delayMs()
                     + " ms, " + shown + " shown on time or late, " + shownLate + " late");
         }
     }

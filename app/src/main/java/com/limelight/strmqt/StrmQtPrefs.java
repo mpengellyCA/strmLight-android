@@ -16,6 +16,9 @@ public final class StrmQtPrefs {
     public static final String KEY_CONNECT_ON_LAUNCH = "strmqt_connect_on_launch";
     public static final String KEY_START_ON_BOOT = "strmqt_start_on_boot";
     public static final String KEY_RETURN_ON_WAKE = "strmqt_return_on_wake";
+    public static final String KEY_SOUND_OFFSET = "strmqt_sound_offset";
+    /** The most a sound offset may be, in ms. */
+    public static final int MAX_SOUND_OFFSET_MS = 500;
 
     public static final String TRANSPORT_WEB = "web";
     public static final String TRANSPORT_GAMEPAD = "gamepad";
@@ -85,6 +88,20 @@ public final class StrmQtPrefs {
 
     public boolean returnOnWake() {
         return switches.getBoolean(KEY_RETURN_ON_WAKE, false);
+    }
+
+    /**
+     * How much earlier this TV plays its sound when playing together, in ms:
+     * the delay after the HDMI port that Android does not see (the TV's own
+     * sound processing, a soundbar or receiver), set by ear.
+     */
+    public int soundOffsetMs() {
+        try {
+            int offset = Integer.parseInt(switches.getString(KEY_SOUND_OFFSET, "0"));
+            return Math.max(0, Math.min(MAX_SOUND_OFFSET_MS, offset));
+        } catch (NumberFormatException | ClassCastException e) {
+            return 0;
+        }
     }
 
     /** The Sunshine host the app connects to by itself; null until one is chosen. */
