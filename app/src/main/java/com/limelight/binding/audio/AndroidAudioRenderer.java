@@ -315,6 +315,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private long leadNs;
         private long leadSince;
         private long leadMostNs;
+        private long statusAt;
+        // Counted on the decoder's thread, read on this one for the status line.
+        private volatile int arrivals;
+        private volatile int untimed;
 
         Scheduler(HostClock hostClock, int channels, int sampleRate, int samplesPerFrame) {
             this.hostClock = hostClock;
@@ -343,7 +347,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
         /** On the decoder's thread: never blocks. */
         void arrived(short[] pcm, long tsMs, long arrivedNs) {
-            if (arrivedNs != 0) {
+            arrivals++;
+            if (arrivedNs == 0) {
+                untimed++;
+            } else {
                 ClockEstimate.Result clock = hostClock.estimate();
                 if (clock != null) {
                     schedule.arrived(tsMs, clock.at(arrivedNs), arrivedNs);
@@ -376,6 +383,13 @@ public class AndroidAudioRenderer implements AudioRenderer {
                     }
                     ClockEstimate.Result clock = hostClock.estimate();
                     Long base = schedule.baseNs(now);
+                    if (now - statusAt > 10_000_000_000L) {
+                        statusAt = now;
+                        LimeLog.info("StrmQt audio: " + arrivals + " packets (" + untimed + " untimed), queue "
+                                + queue.size() + ", track time " + (playAt != null ? (playAt - now) / 1_000_000 + " ms ahead" : "none")
+                                + ", host clock " + (clock != null ? "yes" : "no") + ", base " + (base != null ? "yes" : "no")
+                                + ", late " + schedule.lateNs(now) / 1_000_000 + " ms, delay " + delayMs + " ms");
+                    }
                     if (delayMs <= 0 || playAt == null || clock == null || base == null) {
                         if (packet != null) {
                             write(packet.pcm, frame, packet.pcm.length / channels - frame);

@@ -252,19 +252,19 @@ void BridgeArCleanup() {
     (*env)->CallStaticVoidMethod(env, GlobalBridgeClass, BridgeArCleanupMethod);
 }
 
-// LiGetMicroseconds() is CLOCK_MONOTONIC_RAW; Java's System.nanoTime, and the
-// AudioTrack and Choreographer times StrmLight schedules against, are
-// CLOCK_MONOTONIC. Reading both now moves the receive time across.
-static jlong monotonicNanosFromRaw(uint64_t rawUs) {
-    struct timespec raw, mono;
-    if (rawUs == 0) {
+// LiGetMicroseconds() counts from when moonlight-common-c started, on
+// CLOCK_MONOTONIC_RAW; Java's System.nanoTime, and the AudioTrack and
+// Choreographer times StrmLight schedules against, are CLOCK_MONOTONIC.
+// Reading both now moves the receive time across.
+static jlong monotonicNanosFromLi(uint64_t liUs) {
+    struct timespec mono;
+    if (liUs == 0) {
         return 0;
     }
-    clock_gettime(CLOCK_MONOTONIC_RAW, &raw);
+    uint64_t liNowUs = LiGetMicroseconds();
     clock_gettime(CLOCK_MONOTONIC, &mono);
-    int64_t rawNowNs = (int64_t)raw.tv_sec * 1000000000LL + raw.tv_nsec;
     int64_t monoNowNs = (int64_t)mono.tv_sec * 1000000000LL + mono.tv_nsec;
-    return (jlong)((int64_t)rawUs * 1000 + (monoNowNs - rawNowNs));
+    return (jlong)(monoNowNs - ((int64_t)liNowUs - (int64_t)liUs) * 1000);
 }
 
 void BridgeArDecodeAndPlaySample(char* sampleData, int sampleLength) {
@@ -289,7 +289,7 @@ void BridgeArDecodeAndPlaySample(char* sampleData, int sampleLength) {
         (*env)->ReleasePrimitiveArrayCritical(env, DecodedAudioBuffer, decodedData, 0);
 
         (*env)->CallStaticVoidMethod(env, GlobalBridgeClass, BridgeArPlaySampleMethod, DecodedAudioBuffer,
-                                     (jint)rtpTimestamp, monotonicNanosFromRaw(receiveTimeUs));
+                                     (jint)rtpTimestamp, monotonicNanosFromLi(receiveTimeUs));
         if ((*env)->ExceptionCheck(env)) {
             // We will crash here
             (*JVM)->DetachCurrentThread(JVM);
