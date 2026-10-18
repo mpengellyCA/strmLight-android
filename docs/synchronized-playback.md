@@ -282,10 +282,17 @@ settled.
   - A track takes far more than it is asked for, so at most 60 ms is written ahead.
   - Every change of *D* is heard, so the host moves it only when it must.
 - **Still open.**
-  - Video is not held yet, so audio trails the picture by about *D* while TVs play
-    together.
+  - Video (phase 4) followed the same day, below.
   - The first 20–40 s overshoot *D* before it settles.
   - Each TV's latency after HDMI is not measured; here it did not matter.
+
+**Video, the same day.** Each frame is due *D* after the host time of its RTP timestamp,
+found from arrivals as for audio, so the picture keeps the lip sync it had on the host.
+Lip sync held by ear on both TVs, and every frame reached the display on time.
+- **Where frames wait.** Before the decoder: it is fed 100 ms before a frame is due, and
+  the picture goes to the display with its due time (`releaseOutputBuffer(index, time)`).
+  A Fire TV's decoder lends out only a few pictures, so holding decoded ones would stall it.
+- **No change to the fork.** moonlight-common-c already gives each frame's `rtpTimestamp`.
 
 ## Plan
 
