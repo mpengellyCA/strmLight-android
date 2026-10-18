@@ -43,7 +43,8 @@ import javax.net.ssl.SSLServerSocket;
  * removed (they outlive a restart when the set is handed on); and POSTs that
  * must be JSON. StrmQt vouches for its Sunshine: the answer to the right code
  * names the Sunshine certificate's fingerprint, and so does
- * GET /api/strmlight/host for a paired token.
+ * GET /api/strmlight/host for a paired token, together with the stream's
+ * picture and sound as StrmQt sets them.
  */
 final class FakeStrmQt {
     /** A certificate and its key, so a "restarted" server can present the same one. */
@@ -102,6 +103,14 @@ final class FakeStrmQt {
     volatile String sunshineFingerprint;
     /** A StrmQt from before vouching: GET /api/strmlight/host is 404, the pairing answer has no fingerprint. */
     volatile boolean noVouching;
+    /**
+     * The "stream" object GET /api/strmlight/host carries, as raw JSON (as
+     * StrmQt's streamJson writes it); null leaves it out, as a StrmQt from
+     * before StrmQt set the stream did.
+     */
+    volatile String stream = STREAM;
+    static final String STREAM = "{\"width\":3840,\"height\":2160,\"fps\":30,\"bitrateKbps\":40000,"
+            + "\"codec\":\"auto\",\"audio\":\"2\"}";
     /** GET /api/strmlight/host answers 401 to every token. */
     volatile boolean hostRefusesTokens;
     final AtomicInteger hostRequests = new AtomicInteger();
@@ -308,7 +317,9 @@ final class FakeStrmQt {
         if ((requirePin && !authorized(request)) || hostRefusesTokens) {
             return new String[]{"401", "{\"error\":\"Unauthorized\"}"};
         }
-        return new String[]{"200", "{\"name\":\"StrmQt\"" + vouch() + "}"};
+        String settings = stream;
+        return new String[]{"200", "{\"name\":\"StrmQt\"" + vouch()
+                + (settings != null ? ",\"stream\":" + settings : "") + "}"};
     }
 
     private String[] action(Request request) {

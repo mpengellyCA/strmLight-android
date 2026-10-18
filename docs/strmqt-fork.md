@@ -33,13 +33,13 @@ behind **Advanced setup**.
      address is shown only under two hosts that go by the same name. The
      host set up before, if any, is listed first.
    - **None**: **Can't find StrmQt**, with where to start StrmQt's streaming
-     host (Settings › Web Remote › Streaming host) and **Try again**. While
+     host (Settings › StrmLight › Streaming host) and **Try again**. While
      the screen is in front the network is searched again, quietly, every
      10 s, and a StrmQt that turns up is taken straight to the code. A StrmQt
      that answers but runs no Sunshine says **StrmQt is not streaming**
      instead.
 3. **The code screen.** "Pairing with *host*", one large four-digit code,
-   one line saying where to type it (in StrmQt, Settings › Web Remote ›
+   one line saying where to type it (in StrmQt, Settings › StrmLight ›
    **Pair a StrmLight**, or on StrmQt's phone remote, **Pair a StrmLight**),
    and two ticks, **Picture** (Moonlight with StrmQt's Sunshine) and
    **Remote** (StrmQt's Web Remote). Each turns amber with a check when its
@@ -336,14 +336,20 @@ authenticated, which is why the move is only where to look: the stream
 starts only after the check below.
 
 Before it streams, the paired Sunshine's pinned certificate has to be the
-one StrmQt vouched for (`SunshineVouch`). A device paired before StrmQt
-vouched has none stored: it asks `GET /api/strmlight/host` once, over the
-pinned Web Remote with the stored token, and keeps the answer.
+one StrmQt vouched for (`SunshineVouch`). Before every stream the launcher
+asks `GET /api/strmlight/host`, over the pinned Web Remote with the stored
+token, off the main thread, one request of at most 3 s, inside the attempt's
+20 s bound; a late answer to an abandoned attempt is ignored. The answer
+names StrmQt's Sunshine and carries the stream settings (see Stream
+settings, below). A device paired before StrmQt vouched has no fingerprint
+stored and keeps the one in the answer.
 
 | | StrmLight |
 |---|---|
-| The vouched Sunshine | Streams |
+| The vouched Sunshine | Writes StrmQt's stream settings, if the answer had them, and streams |
 | Another Sunshine | Does not stream: "That is not StrmQt's Sunshine", and opens pairing |
+| Stored, StrmQt now names another certificate | Does not stream: "That is not StrmQt's Sunshine", and opens pairing |
+| Stored, StrmQt does not answer (or says no fingerprint, `401`, a changed Web Remote certificate) | The stored fingerprint decides, as before: streams with the settings last written; the remote finds out about a `401` or a changed certificate in the stream |
 | Nothing stored, StrmQt does not say | Does not stream: "Update StrmQt" (asks again next time) |
 | Nothing stored, `401` | Forgets the token and opens pairing, as a removed device does |
 | Nothing stored, StrmQt's certificate changed | Opens pairing |
@@ -355,11 +361,59 @@ that stayed up 30 s resets the count. Disconnect from the menu does not
 reconnect. Leaving the app ends the stream, as in upstream; coming back
 reconnects.
 
-### Stream preset
+### Stream settings, set in StrmQt
 
-3840x2160, 30 FPS, HEVC forced, 40 Mbps, "Balanced" frame pacing; or
-1920x1080 at 15 Mbps when no decoder on the device reports 4K HEVC. Written
-once into Moonlight's ordinary settings, where each value can be changed.
+StrmQt is the one place where the stream's picture and sound are set
+(Settings › StrmLight › Picture and sound). Its answer to
+`GET /api/strmlight/host` carries them:
+
+```
+{"sunshineFingerprint": "<64 hex>",
+ "stream": {"width": 3840, "height": 2160, "fps": 30, "bitrateKbps": 40000,
+            "codec": "auto", "audio": "2"}}
+```
+
+`HostStream` reads the "stream" object tolerantly: unknown fields are
+ignored, and a field that is missing or makes no sense is left out on its
+own, so the setting it would have made stays as Moonlight has it. A size
+counts only as 1280x720, 1920x1080, 2560x1440 or 3840x2160; fps only 30 or
+60; the bitrate only 1000 to 150000 kbps; the codec `auto`, `hevc`, `av1`
+or `h264`; the sound `2`, `51` or `71`.
+
+Before the stream starts, `StreamPreset.prefsFor` turns them into
+Moonlight's settings: `list_resolution` "WxH", `list_fps`,
+`seekbar_bitrate_kbps`, `video_format` (`auto` → auto, `hevc` →
+forceh265, `av1` → forceav1, `h264` → neverh265) and `list_audio_config`;
+`checkbox_enable_hdr` is always off (KWin's virtual screen cannot be HDR)
+and `frame_pacing` "balanced". The codec queries run on the launcher's
+worker thread; the settings are written only when the stream is about to
+start.
+
+What the device decodes is asked of `MediaCodecList`, leaving out software
+decoders as Moonlight does. When it cannot decode the codec at that size and
+rate: the next codec (AV1, then HEVC, then H.264), then 30 fps instead of
+60, then the next smaller size (4K, 1440p, 1080p, 720p). A stream made
+smaller or slower has its bitrate capped at what StrmQt would choose for it
+by itself (40, 25, 15, 8 Mbps for 2160, 1440, 1080, 720 lines, half as much
+again above 30 fps). When no decoder reports anything, the query is not
+trusted: at most 1080p, and Moonlight picks the codec. Each step down is
+logged ("StrmQt stream: this device cannot decode ...").
+
+**StrmLight's Settings screen.** Once StrmQt has sent stream settings,
+the rows they would write over (resolution, frame rate, bitrate, frame
+pacing, sound, video codec, HDR) and **Apply the StrmQt stream preset**
+are greyed out, with the line "Set in StrmQt (Settings › StrmLight ›
+Picture and sound), and written here at every launch" (lists show their
+value before it). Chosen over hiding them: upstream's settings code looks
+those rows up by key and would fail if they were gone, and a greyed row
+still shows what the stream uses. The flag is kept with the pairing and
+cleared when a StrmQt answers without stream settings.
+
+**An older StrmQt** (no "stream" in the answer) leaves Moonlight's settings
+to the preset, written once at pairing: 3840x2160, 30 FPS, HEVC forced, 40
+Mbps, "Balanced" frame pacing; or 1920x1080 at 15 Mbps when no decoder on
+the device reports 4K HEVC. Each value can then be changed in Settings.
+
 The screen is kept on while streaming by upstream already.
 
 ### Start with the device (optional, off by default)
@@ -428,7 +482,8 @@ Read from StrmQt at `1d5cebf`:
 | Gestures: repeat timing, long presses, hold-Back, no run-on | Unit tests |
 | Web Remote client: pinning; pairing by code (waiting, typed in, wrong code, 429 wait, pairing off, a held token still good or removed, older StrmQt, the device-name header); staying paired across a restart; a removed device not looping on `401`; recovery; dropping stale presses | Unit tests, against a stand-in server written from StrmQt's source |
 | Discovery: reading replies (complete, unknown fields, missing or bad ports, bad fingerprints, garbage), deduplication, the probe and its timing over loopback | Unit tests, against a stand-in host on loopback (never port 8338) |
-| StrmQt vouching for its Sunshine: the vouched one paired, another refused, none (absent, or a StrmQt from before) refused, an already-paired Sunshine checked, a held token StrmQt will not vouch with pairing by code; asking `/api/strmlight/host` (vouched, unpaired, none, pairing off, unreachable, another certificate); the launcher's decisions | Unit tests, against the stand-in Web Remote and Sunshine (`SunshineVouchTest`); not yet against StrmQt or on a device |
+| StrmQt vouching for its Sunshine: the vouched one paired, another refused, none (absent, or a StrmQt from before) refused, an already-paired Sunshine checked, a held token StrmQt will not vouch with pairing by code; asking `/api/strmlight/host` (vouched, unpaired, none, pairing off, unreachable, another certificate); the launcher's decisions, at every launch with and without a stored fingerprint | Unit tests, against the stand-in Web Remote and Sunshine (`SunshineVouchTest`); not yet against StrmQt or on a device |
+| Stream settings from StrmQt: reading "stream" (complete, unknown fields, missing fields, nonsense per field, not an object, older StrmQt), the mapping to Moonlight's settings, and stepping down (AV1 → HEVC → H.264, 60 → 30 fps, 4K → 1440p → 1080p, bitrate capped, nothing decodable) | Unit tests (`HostStreamTest`, `StreamPresetTest`, `StrmQtClientTest`); the launcher writing them, the greyed Settings rows and real `MediaCodecList` answers not yet run on a device |
 | Following a moved Sunshine: which reply is followed (the same certificate at a new port or address, the matching one among several, a new port preferred over a new address), and which are not (nothing moved, another StrmQt, no fingerprint, no Sunshine, no pinned certificate) | Unit tests (`HostMoveTest`); the launcher's search and Moonlight's computer pointed at the new port not yet run against StrmQt or on a device |
 | One-code pairing: both halves from one entry; a stale Sunshine session (`409`) retried until it clears; a wrong PIN; Sunshine unreachable or refusing; halves already paired; a token held for another certificate; pausing (including a Moonlight request finishing while paused); the announced certificate checked; a new code; lockout; an older StrmQt; stopping | Unit tests, with a stand-in Sunshine behind the stream-pairing interface and the stand-in Web Remote |
 | First-run decisions: what opening the app does, which screen follows a search (one, several, none, hosts that cannot stream, a host found late, Pair again with the stored host, after the user stopped pairing), the chooser's order and when it shows addresses, the code screen's ticks and its one line of trouble | Unit tests (`FirstRunTest`) |

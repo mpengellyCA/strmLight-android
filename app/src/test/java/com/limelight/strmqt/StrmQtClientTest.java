@@ -537,6 +537,53 @@ public class StrmQtClientTest {
     }
 
     @Test
+    public void askingCarriesTheStreamStrmQtSets() throws Exception {
+        server.sunshineFingerprint = SUNSHINE;
+        StrmQtClient.Vouch answer = StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(),
+                server.pairDevice());
+        assertEquals(StrmQtClient.Vouch.Kind.VOUCHED, answer.kind);
+        assertEquals(SUNSHINE, answer.fingerprint);
+        assertEquals("3840x2160", answer.stream.resolution());
+        assertEquals(Integer.valueOf(30), answer.stream.fps);
+        assertEquals(Integer.valueOf(40000), answer.stream.bitrateKbps);
+        assertEquals(HostStream.CODEC_AUTO, answer.stream.codec);
+        assertEquals(HostStream.AUDIO_STEREO, answer.stream.audio);
+    }
+
+    @Test
+    public void askingAStrmQtThatDoesNotSetTheStreamCarriesNone() throws Exception {
+        server.sunshineFingerprint = SUNSHINE;
+        server.stream = null;
+        String token = server.pairDevice();
+        StrmQtClient.Vouch answer = StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), token);
+        assertEquals("the vouch is as before", StrmQtClient.Vouch.Kind.VOUCHED, answer.kind);
+        assertNull(answer.stream);
+        server.stream = "\"4K please\"";
+        assertNull("not an object", StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), token).stream);
+        server.stream = FakeStrmQt.STREAM;
+        server.noVouching = true;
+        assertNull("a StrmQt from before vouching",
+                StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), token).stream);
+    }
+
+    @Test
+    public void aStreamWithoutAFingerprintStillCarriesTheStream() throws Exception {
+        StrmQtClient.Vouch answer = StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(),
+                server.pairDevice());
+        assertEquals(StrmQtClient.Vouch.Kind.NONE, answer.kind);
+        assertEquals("3840x2160", answer.stream.resolution());
+    }
+
+    @Test
+    public void noAnswerCarriesNoStream() throws Exception {
+        assertNull("401", StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), "not-a-token").stream);
+        String pinned = fingerprint();
+        int port = server.port();
+        server.stop();
+        assertNull("unreachable", StrmQtClient.askSunshine("127.0.0.1", port, pinned, "token").stream);
+    }
+
+    @Test
     public void jsonEscaping() {
         assertEquals("12\\\"34\\\\", StrmQtClient.escape("12\"34\\"));
     }

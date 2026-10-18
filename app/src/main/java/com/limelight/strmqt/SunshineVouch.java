@@ -20,7 +20,7 @@ public final class SunshineVouch {
     public enum Launch {
         /** It is the Sunshine StrmQt vouches for: stream. */
         STREAM,
-        /** Nothing is stored (paired by a StrmLight before this): ask StrmQt, once. */
+        /** Nothing is stored (paired by a StrmLight before this): StrmQt's answer decides. */
         ASK,
         /** Not the Sunshine StrmQt vouches for: refuse, and offer pairing again. */
         NOT_STRMQT,
@@ -64,6 +64,26 @@ public final class SunshineVouch {
             return Launch.ASK;
         }
         return matches(stored, presented) ? Launch.STREAM : Launch.NOT_STRMQT;
+    }
+
+    /**
+     * After asking StrmQt, as the launcher does before every stream (the
+     * answer also carries the stream settings). With nothing stored, the
+     * answer decides, as {@link #afterAsking}. With a fingerprint stored, an
+     * answer naming another certificate is refused; any other answer (StrmQt
+     * unreachable, no fingerprint in it, a {@code 401}, a changed Web Remote
+     * certificate) leaves the decision to the stored fingerprint, as before
+     * StrmLight asked every time: the remote finds out about the Web Remote
+     * in the stream.
+     */
+    public static Launch atEveryLaunch(String stored, StrmQtClient.Vouch answer, String presented) {
+        if (StrmQtDiscovery.normalizeFingerprint(stored) == null) {
+            return afterAsking(answer, presented);
+        }
+        if (answer.kind == StrmQtClient.Vouch.Kind.VOUCHED && !matches(answer.fingerprint, stored)) {
+            return Launch.NOT_STRMQT;
+        }
+        return atLaunch(stored, presented);
     }
 
     /** After asking StrmQt, because nothing was stored. */

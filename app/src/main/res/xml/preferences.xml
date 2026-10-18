@@ -30,6 +30,7 @@
             android:summary="@string/strmqt_pref_connect_summary"
             android:defaultValue="true" />
         <com.limelight.strmqt.ActionPreference
+            android:key="strmqt_preset"
             action="preset"
             android:title="@string/strmqt_pref_preset_title"
             android:summary="@string/strmqt_pref_preset_summary" />

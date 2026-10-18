@@ -297,9 +297,10 @@ public final class StrmQtDiscovery {
     }
 
     /**
-     * Just enough JSON for a discovery reply: one object, whose string,
-     * number and boolean members are kept and whose nested values are
-     * skipped. Anything malformed gives null.
+     * Just enough JSON for a discovery reply and StrmQt's small answers: one
+     * object, whose string, number, boolean and object members are kept (a
+     * nested object as a map of its own) and whose arrays are skipped.
+     * Anything malformed gives null.
      */
     static final class Json {
         private final String text;
@@ -360,8 +361,7 @@ public final class StrmQtDiscovery {
                 case '"':
                     return string();
                 case '{':
-                    object(depth + 1);
-                    return null;
+                    return object(depth + 1);
                 case '[':
                     array(depth + 1);
                     return null;

@@ -3,6 +3,7 @@ package com.limelight.strmqt;
 import android.app.Activity;
 import android.app.Service;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
@@ -29,6 +30,7 @@ import com.limelight.utils.UiHelper;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The app's front door, and the fork's own menu.
@@ -42,6 +44,9 @@ import java.util.List;
  * The connection itself is Moonlight's: this finds the host through
  * ComputerManagerService, as ShortcutTrampoline does, and hands over to Game.
  * It hands over only a Sunshine StrmQt vouches for; see {@link SunshineVouch}.
+ * StrmQt is asked before every stream, and its answer also carries the
+ * stream's picture and sound, written into Moonlight's settings first; see
+ * {@link StreamPreset#prefsFor(Context, HostStream)}.
  */
 public class LaunchActivity extends Activity {
     /** Connect now, whatever this was doing: pairing has just finished. */
@@ -409,14 +414,10 @@ public class LaunchActivity extends Activity {
         // Online and paired. One answer is enough.
         binder.stopPolling();
 
-        // Only the Sunshine StrmQt vouches for is streamed from.
+        // Only the Sunshine StrmQt vouches for is streamed from, and StrmQt sets
+        // the stream: it is asked every time.
         final String presented = SunshineVouch.fingerprint(details.serverCert);
-        SunshineVouch.Launch decision = SunshineVouch.atLaunch(prefs.sunshineFingerprint(), presented);
-        if (decision == SunshineVouch.Launch.ASK) {
-            askStrmQt(binder, details, presented, attempt);
-        } else {
-            vouchDecided(decision, binder, details, attempt);
-        }
+        askStrmQt(binder, details, presented, attempt);
     }
 
     /** Wakes the host while tries are left; then the attempt fails. */
@@ -531,34 +532,56 @@ public class LaunchActivity extends Activity {
     }
 
     /**
-     * Paired by a StrmLight from before StrmQt vouched, so nothing is stored:
-     * asks StrmQt once, over the pinned Web Remote with the token, and keeps
-     * the answer.
+     * Before every stream: asks StrmQt, over the pinned Web Remote with the
+     * token (one request, at most 3 s), which Sunshine is its own and how it
+     * sets the stream. A device paired before StrmQt vouched has no
+     * fingerprint stored and keeps the answer; with one stored, an answer
+     * naming another Sunshine is refused, and no answer streams as before,
+     * with the settings last written. See {@link SunshineVouch#atEveryLaunch}.
      */
     private void askStrmQt(final ComputerManagerService.ComputerManagerBinder binder,
                            final ComputerDetails details, final String presented, final int attempt) {
+        final String stored = prefs.sunshineFingerprint();
         final String host = prefs.remoteHost();
         final int port = prefs.remotePort();
         final String cert = prefs.certFingerprint();
         final String token = prefs.token();
         if (host == null || cert == null) {
-            // No StrmQt to ask.
-            vouchDecided(SunshineVouch.Launch.NOT_STRMQT, binder, details, attempt);
+            // No StrmQt to ask: only what is stored can decide.
+            SunshineVouch.Launch decision = SunshineVouch.atLaunch(stored, presented);
+            vouchDecided(decision == SunshineVouch.Launch.ASK ? SunshineVouch.Launch.NOT_STRMQT : decision,
+                    binder, details, attempt);
             return;
         }
+        final Context app = getApplicationContext();
         new Thread("StrmQt vouch") {
             @Override
             public void run() {
                 final StrmQtClient.Vouch answer = StrmQtClient.askSunshine(host, port, cert, token);
                 LimeLog.info("StrmQt vouches for: " + answer);
+                // Codec queries block, so the settings are worked out here; written
+                // only when the stream is going to start.
+                final Map<String, Object> streamPrefs = answer.stream != null && attempt == attemptId
+                        ? StreamPreset.prefsFor(app, answer.stream) : null;
                 handler.post(() -> {
                     if (attempt != attemptId) {
                         return;
                     }
-                    if (answer.kind == StrmQtClient.Vouch.Kind.VOUCHED) {
+                    if (StrmQtDiscovery.normalizeFingerprint(stored) == null
+                            && answer.kind == StrmQtClient.Vouch.Kind.VOUCHED) {
                         prefs.setSunshineFingerprint(answer.fingerprint);
                     }
-                    vouchDecided(SunshineVouch.afterAsking(answer, presented), binder, details, attempt);
+                    if (answer.kind == StrmQtClient.Vouch.Kind.VOUCHED
+                            || answer.kind == StrmQtClient.Vouch.Kind.NONE) {
+                        // StrmQt answered: whether it sets the stream is now known.
+                        prefs.setStreamFromStrmQt(answer.stream != null);
+                    }
+                    SunshineVouch.Launch decision = SunshineVouch.atEveryLaunch(stored, answer, presented);
+                    if (decision == SunshineVouch.Launch.STREAM && streamPrefs != null) {
+                        LimeLog.info("StrmQt sets the stream: " + streamPrefs);
+                        StreamPreset.write(LaunchActivity.this, streamPrefs);
+                    }
+                    vouchDecided(decision, binder, details, attempt);
                 });
             }
         }.start();

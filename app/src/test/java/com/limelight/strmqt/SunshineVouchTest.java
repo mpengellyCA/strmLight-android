@@ -87,4 +87,49 @@ public class SunshineVouchTest {
         assertEquals(SunshineVouch.Launch.RETRY,
                 SunshineVouch.afterAsking(answer(StrmQtClient.Vouch.Kind.UNREACHABLE, null), VOUCHED));
     }
+    @Test
+    public void everyLaunchWithNothingStoredTheAnswerDecides() {
+        StrmQtClient.Vouch vouched = answer(StrmQtClient.Vouch.Kind.VOUCHED, VOUCHED);
+        assertEquals(SunshineVouch.Launch.STREAM, SunshineVouch.atEveryLaunch(null, vouched, VOUCHED));
+        assertEquals(SunshineVouch.Launch.NOT_STRMQT, SunshineVouch.atEveryLaunch(null, vouched, OTHER));
+        assertEquals(SunshineVouch.Launch.UNVOUCHED,
+                SunshineVouch.atEveryLaunch(null, answer(StrmQtClient.Vouch.Kind.NONE, null), VOUCHED));
+        assertEquals(SunshineVouch.Launch.UNPAIRED,
+                SunshineVouch.atEveryLaunch("", answer(StrmQtClient.Vouch.Kind.UNPAIRED, null), VOUCHED));
+        assertEquals(SunshineVouch.Launch.CERT_CHANGED,
+                SunshineVouch.atEveryLaunch(null, answer(StrmQtClient.Vouch.Kind.CERT_CHANGED, null), VOUCHED));
+        assertEquals("no answer, nothing stored: tried again", SunshineVouch.Launch.RETRY,
+                SunshineVouch.atEveryLaunch(null, answer(StrmQtClient.Vouch.Kind.UNREACHABLE, null), VOUCHED));
+    }
+
+    @Test
+    public void everyLaunchTheSameVouchStreams() {
+        assertEquals(SunshineVouch.Launch.STREAM, SunshineVouch.atEveryLaunch(VOUCHED,
+                answer(StrmQtClient.Vouch.Kind.VOUCHED, VOUCHED), VOUCHED));
+        assertEquals("however it is written", SunshineVouch.Launch.STREAM, SunshineVouch.atEveryLaunch(
+                VOUCHED, answer(StrmQtClient.Vouch.Kind.VOUCHED, VOUCHED), VOUCHED.toUpperCase(Locale.ROOT)));
+        assertEquals("but not from another Sunshine", SunshineVouch.Launch.NOT_STRMQT,
+                SunshineVouch.atEveryLaunch(VOUCHED, answer(StrmQtClient.Vouch.Kind.VOUCHED, VOUCHED), OTHER));
+    }
+
+    @Test
+    public void everyLaunchAVouchForAnotherSunshineIsRefused() {
+        // Even when the Sunshine at hand is the one StrmQt now names: it is not the paired one.
+        assertEquals(SunshineVouch.Launch.NOT_STRMQT, SunshineVouch.atEveryLaunch(VOUCHED,
+                answer(StrmQtClient.Vouch.Kind.VOUCHED, OTHER), OTHER));
+        assertEquals(SunshineVouch.Launch.NOT_STRMQT, SunshineVouch.atEveryLaunch(VOUCHED,
+                answer(StrmQtClient.Vouch.Kind.VOUCHED, OTHER), VOUCHED));
+    }
+
+    @Test
+    public void everyLaunchWithoutAVouchTheStoredFingerprintDecides() {
+        for (StrmQtClient.Vouch.Kind kind : new StrmQtClient.Vouch.Kind[]{StrmQtClient.Vouch.Kind.UNREACHABLE,
+                StrmQtClient.Vouch.Kind.NONE, StrmQtClient.Vouch.Kind.UNPAIRED,
+                StrmQtClient.Vouch.Kind.CERT_CHANGED}) {
+            assertEquals(kind + ": streams as before", SunshineVouch.Launch.STREAM,
+                    SunshineVouch.atEveryLaunch(VOUCHED, answer(kind, null), VOUCHED));
+            assertEquals(kind + ": another Sunshine still refused", SunshineVouch.Launch.NOT_STRMQT,
+                    SunshineVouch.atEveryLaunch(VOUCHED, answer(kind, null), OTHER));
+        }
+    }
 }

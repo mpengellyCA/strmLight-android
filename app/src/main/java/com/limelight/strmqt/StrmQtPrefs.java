@@ -46,6 +46,8 @@ public final class StrmQtPrefs {
     private static final String APP_NAME = "app_name";
     private static final String HINT_SHOWN = "hold_back_hint_shown";
     private static final String PRESET_APPLIED = "preset_applied";
+    /** The paired StrmQt's last answer set the stream (resolution, codec, sound ...). */
+    private static final String STREAM_FROM_STRMQT = "stream_from_strmqt";
 
     private final SharedPreferences switches;
     private final SharedPreferences store;
@@ -222,5 +224,18 @@ public final class StrmQtPrefs {
 
     public void setPresetApplied() {
         store.edit().putBoolean(PRESET_APPLIED, true).apply();
+    }
+
+    /**
+     * Whether StrmQt sets the stream's picture and sound: its last answer to
+     * GET /api/strmlight/host carried them. Moonlight's own settings for them
+     * are then written over at every launch.
+     */
+    public boolean streamFromStrmQt() {
+        return store.getBoolean(STREAM_FROM_STRMQT, false);
+    }
+
+    public void setStreamFromStrmQt(boolean fromStrmQt) {
+        store.edit().putBoolean(STREAM_FROM_STRMQT, fromStrmQt).apply();
     }
 }

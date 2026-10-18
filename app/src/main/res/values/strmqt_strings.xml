@@ -17,6 +17,9 @@
     <string name="strmqt_pref_connect_summary">Opening the app goes straight to the StrmQt stream, and reconnects if it drops</string>
     <string name="strmqt_pref_preset_title">Apply the StrmQt stream preset</string>
     <string name="strmqt_pref_preset_summary">4K, 30 FPS, HEVC, paced for video. 1080p when this device cannot decode 4K.</string>
+    <!-- On Moonlight's stream settings when StrmQt sends the stream; in the second, a list puts its value for %1$s. -->
+    <string name="strmqt_pref_set_in_strmqt">Set in StrmQt (Settings › StrmLight › Picture and sound), and written here at every launch</string>
+    <string name="strmqt_pref_set_in_strmqt_value">%1$s. Set in StrmQt (Settings › StrmLight › Picture and sound), and written here at every launch</string>
     <string name="strmqt_pref_boot_title">Start with the device</string>
     <string name="strmqt_pref_boot_summary">Open the stream when the device has booted. Needs a permission granted over adb; see the fork\'s notes.</string>
     <string name="strmqt_pref_wake_title">Return on wake</string>
@@ -80,7 +83,7 @@
     <string name="strmqt_setup_sunshine_port_label">Sunshine port</string>
     <string name="strmqt_setup_pair_hint">Choose Pair. This screen then shows one code to type into StrmQt; it pairs both the stream and the remote.</string>
     <string name="strmqt_setup_code_label">Pairing code</string>
-    <string name="strmqt_setup_code_instructions">Type this code into StrmQt under Settings, Web Remote, Pair a StrmLight, or into StrmQt\'s phone remote under Remote, Pair a StrmLight. Typing it once pairs both the stream and the remote.</string>
+    <string name="strmqt_setup_code_instructions">Type this code into StrmQt under Settings, StrmLight, Pair a StrmLight, or into StrmQt\'s phone remote under Remote, Pair a StrmLight. Typing it once pairs both the stream and the remote.</string>
     <string name="strmqt_setup_pair">Pair</string>
     <string name="strmqt_setup_stop">Stop pairing</string>
     <string name="strmqt_setup_new_code">New code</string>
@@ -114,7 +117,7 @@
     <string name="strmqt_first_searching_body">Searching this network for StrmQt\'s streaming host.</string>
     <string name="strmqt_first_code_host">Pairing with %1$s</string>
     <string name="strmqt_first_code_title">Enter this code in StrmQt</string>
-    <string name="strmqt_first_code_where">In StrmQt: Settings › Web Remote › Pair a StrmLight. Or on StrmQt\'s phone remote: Pair a StrmLight.</string>
+    <string name="strmqt_first_code_where">In StrmQt: Settings › StrmLight › Pair a StrmLight. Or on StrmQt\'s phone remote: Pair a StrmLight.</string>
     <string name="strmqt_first_step_picture">Picture</string>
     <string name="strmqt_first_step_remote">Remote</string>
     <string name="strmqt_first_trouble_wrong_code">StrmQt was given a different code. Type the code above again.</string>
@@ -127,9 +130,9 @@
     <string name="strmqt_first_choose_body">More than one StrmQt is on this network. Choose the one to stream.</string>
     <string name="strmqt_first_search_again">Search again</string>
     <string name="strmqt_first_not_found_title">Can\'t find StrmQt</string>
-    <string name="strmqt_first_not_found_body">Check that StrmQt\'s streaming host is running (in StrmQt: Settings › Web Remote › Streaming host) and that this TV is on the same network.</string>
+    <string name="strmqt_first_not_found_body">Check that StrmQt\'s streaming host is running (in StrmQt: Settings › StrmLight › Streaming host) and that this TV is on the same network.</string>
     <string name="strmqt_first_no_stream_title">StrmQt is not streaming</string>
-    <string name="strmqt_first_no_stream_body">StrmQt answered, but its streaming host is not running. Start it in StrmQt under Settings › Web Remote › Streaming host.</string>
+    <string name="strmqt_first_no_stream_body">StrmQt answered, but its streaming host is not running. Start it in StrmQt under Settings › StrmLight › Streaming host.</string>
     <string name="strmqt_first_search_failed">Could not search: %1$s</string>
     <string name="strmqt_first_try_again">Try again</string>
     <string name="strmqt_first_problem_title">Pairing stopped</string>

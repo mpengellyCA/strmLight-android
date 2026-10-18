@@ -29,6 +29,7 @@ import android.view.WindowInsets;
 
 import com.limelight.LimeLog;
 import com.limelight.strmqt.LaunchActivity;
+import com.limelight.strmqt.StreamPreset;
 import com.limelight.R;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.utils.Dialog;
@@ -667,6 +668,9 @@ public class StreamSettings extends Activity {
                     return true;
                 }
             });
+
+            // StrmQt sets the stream's picture and sound; say so on those rows.
+            StreamPreset.markSetInStrmQt(this);
         }
     }
 }

@@ -115,15 +115,26 @@ public final class StrmQtClient {
         public final Kind kind;
         /** Lowercase hex, as {@link CertPin#fingerprint} gives it; set when VOUCHED. */
         public final String fingerprint;
+        /**
+         * The stream's picture and sound as StrmQt sets them; null when the
+         * answer had none (a StrmQt from before this, or no answer).
+         */
+        public final HostStream stream;
 
         Vouch(Kind kind, String fingerprint) {
+            this(kind, fingerprint, null);
+        }
+
+        Vouch(Kind kind, String fingerprint, HostStream stream) {
             this.kind = kind;
             this.fingerprint = fingerprint;
+            this.stream = stream;
         }
 
         @Override
         public String toString() {
-            return kind + (fingerprint != null ? " " + fingerprint : "");
+            return kind + (fingerprint != null ? " " + fingerprint : "")
+                    + (stream != null ? ", stream " + stream : "");
         }
     }
 
@@ -510,7 +521,8 @@ public final class StrmQtClient {
             switch (response.code()) {
                 case 200:
                     String fingerprint = sunshineFingerprint(body);
-                    return new Vouch(fingerprint != null ? Vouch.Kind.VOUCHED : Vouch.Kind.NONE, fingerprint);
+                    return new Vouch(fingerprint != null ? Vouch.Kind.VOUCHED : Vouch.Kind.NONE, fingerprint,
+                            HostStream.fromAnswer(body));
                 case 401:
                     return new Vouch(Vouch.Kind.UNPAIRED, null);
                 case 404:
@@ -531,8 +543,9 @@ public final class StrmQtClient {
 
     /**
      * Asks the StrmQt at host:port, over the pinned certificate, which
-     * Sunshine is its own. Blocks, so never on the main thread; one request,
-     * no retries, and it never throws.
+     * Sunshine is its own, and how it sets the stream. Blocks, so never on
+     * the main thread; one request, no retries, at most 3 s, and it never
+     * throws.
      *
      * @param token the paired token, or null when StrmQt asks for no pairing
      */
