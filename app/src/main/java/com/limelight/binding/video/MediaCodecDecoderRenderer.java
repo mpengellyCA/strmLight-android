@@ -20,6 +20,7 @@ import com.limelight.nvstream.av.video.VideoDecoderRenderer;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.strmqt.HostClock;
+import com.limelight.strmqt.PlayTogether;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -1404,6 +1405,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                 HostClock hostClock = HostClock.current();
                 if (hostClock != null) {
                     sb.append(hostClock.describe()).append('\n');
+                }
+                PlayTogether together = PlayTogether.current();
+                if (together != null) {
+                    sb.append(together.describe()).append('\n');
                 }
                 if (lastTwo.framesWithHostProcessingLatency > 0) {
                     sb.append(context.getString(R.string.perf_overlay_hostprocessinglatency,

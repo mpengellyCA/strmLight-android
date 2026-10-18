@@ -103,4 +103,12 @@ public class ClockEstimateTest {
         assertFalse("sent before it was received", estimate.add(0, 30, 20, 100, 1));
         assertFalse("took longer there than the whole trip", estimate.add(0, 0, 200, 100, 1));
     }
+
+    @Test
+    public void localAtUndoesAt() {
+        ClockEstimate.Result r = new ClockEstimate.Result(5_000 * MS, 1_000_000 * MS, 37.5, MS, 10_000, 100);
+        for (long local : new long[]{0, 1_000_000 * MS, 3_600_000 * MS, -50 * MS}) {
+            assertEquals(local, r.localAt(r.at(local)));
+        }
+    }
 }

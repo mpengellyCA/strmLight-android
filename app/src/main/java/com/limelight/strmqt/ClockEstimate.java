@@ -59,6 +59,14 @@ public final class ClockEstimate {
         public long at(long local) {
             return local + offsetNs + Math.round((local - reference) * skewPpm / 1e6);
         }
+
+        /** This clock's reading when the other one reads `other`: the inverse of {@link #at}. */
+        public long localAt(long other) {
+            // Skew is parts per million: a second pass leaves well under a nanosecond.
+            long local = other - offsetNs;
+            local = other - offsetNs - Math.round((local - reference) * skewPpm / 1e6);
+            return other - offsetNs - Math.round((local - reference) * skewPpm / 1e6);
+        }
     }
 
     private final long[] local = new long[WINDOW];

@@ -2,6 +2,7 @@
 
 #include <pthread.h>
 #include <string.h>
+#include <time.h>
 
 #include <Limelight.h>
 
@@ -90,7 +91,7 @@ Java_com_limelight_nvstream_jni_MoonBridge_init(JNIEnv *env, jclass clazz) {
     BridgeArStartMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeArStart", "()V");
     BridgeArStopMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeArStop", "()V");
     BridgeArCleanupMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeArCleanup", "()V");
-    BridgeArPlaySampleMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeArPlaySample", "([S)V");
+    BridgeArPlaySampleMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeArPlaySample", "([SIJ)V");
     BridgeClStageStartingMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeClStageStarting", "(I)V");
     BridgeClStageCompleteMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeClStageComplete", "(I)V");
     BridgeClStageFailedMethod = (*env)->GetStaticMethodID(env, clazz, "bridgeClStageFailed", "(II)V");
@@ -251,8 +252,29 @@ void BridgeArCleanup() {
     (*env)->CallStaticVoidMethod(env, GlobalBridgeClass, BridgeArCleanupMethod);
 }
 
+// LiGetMicroseconds() is CLOCK_MONOTONIC_RAW; Java's System.nanoTime, and the
+// AudioTrack and Choreographer times StrmLight schedules against, are
+// CLOCK_MONOTONIC. Reading both now moves the receive time across.
+static jlong monotonicNanosFromRaw(uint64_t rawUs) {
+    struct timespec raw, mono;
+    if (rawUs == 0) {
+        return 0;
+    }
+    clock_gettime(CLOCK_MONOTONIC_RAW, &raw);
+    clock_gettime(CLOCK_MONOTONIC, &mono);
+    int64_t rawNowNs = (int64_t)raw.tv_sec * 1000000000LL + raw.tv_nsec;
+    int64_t monoNowNs = (int64_t)mono.tv_sec * 1000000000LL + mono.tv_nsec;
+    return (jlong)((int64_t)rawUs * 1000 + (monoNowNs - rawNowNs));
+}
+
 void BridgeArDecodeAndPlaySample(char* sampleData, int sampleLength) {
     JNIEnv* env = GetThreadEnv();
+    uint32_t rtpTimestamp;
+    uint64_t receiveTimeUs;
+
+    // The host's timestamp, for playing in step with other TVs (StrmLight's
+    // docs/synchronized-playback.md).
+    LiGetCurrentAudioSampleInfo(&rtpTimestamp, &receiveTimeUs);
 
     jshort* decodedData = (*env)->GetPrimitiveArrayCritical(env, DecodedAudioBuffer, NULL);
 
@@ -266,7 +288,8 @@ void BridgeArDecodeAndPlaySample(char* sampleData, int sampleLength) {
         // We must release the array elements before making further JNI calls
         (*env)->ReleasePrimitiveArrayCritical(env, DecodedAudioBuffer, decodedData, 0);
 
-        (*env)->CallStaticVoidMethod(env, GlobalBridgeClass, BridgeArPlaySampleMethod, DecodedAudioBuffer);
+        (*env)->CallStaticVoidMethod(env, GlobalBridgeClass, BridgeArPlaySampleMethod, DecodedAudioBuffer,
+                                     (jint)rtpTimestamp, monotonicNanosFromRaw(receiveTimeUs));
         if ((*env)->ExceptionCheck(env)) {
             // We will crash here
             (*JVM)->DetachCurrentThread(JVM);

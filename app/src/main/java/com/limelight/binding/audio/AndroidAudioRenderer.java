@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
+import android.media.AudioTimestamp;
 import android.media.AudioTrack;
 import android.media.audiofx.AudioEffect;
 import android.os.Build;
@@ -12,6 +13,13 @@ import android.os.Build;
 import com.limelight.LimeLog;
 import com.limelight.nvstream.av.audio.AudioRenderer;
 import com.limelight.nvstream.jni.MoonBridge;
+import com.limelight.strmqt.AudioSchedule;
+import com.limelight.strmqt.ClockEstimate;
+import com.limelight.strmqt.HostClock;
+import com.limelight.strmqt.PlayTogether;
+
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class AndroidAudioRenderer implements AudioRenderer {
 
@@ -19,6 +27,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
     private final boolean enableAudioFx;
 
     private AudioTrack track;
+    // Streaming from a StrmQt that keeps time: a thread of its own writes
+    // the track, so each sample can be played when it is due.
+    private Scheduler scheduler;
 
     public AndroidAudioRenderer(Context context, boolean enableAudioFx) {
         this.context = context;
@@ -182,7 +193,21 @@ public class AndroidAudioRenderer implements AudioRenderer {
             return -2;
         }
 
+        HostClock hostClock = HostClock.current();
+        if (hostClock != null) {
+            scheduler = new Scheduler(hostClock, audioConfiguration.channelCount, sampleRate, samplesPerFrame);
+        }
+
         return 0;
+    }
+
+    @Override
+    public void playDecodedAudio(short[] audioData, int rtpTimestamp, long receiveTimeNs) {
+        if (scheduler != null) {
+            scheduler.arrived(audioData, rtpTimestamp & 0xFFFFFFFFL, receiveTimeNs);
+        } else {
+            playDecodedAudio(audioData);
+        }
     }
 
     @Override
@@ -201,6 +226,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
     @Override
     public void start() {
+        if (scheduler != null) {
+            scheduler.start();
+        }
         if (enableAudioFx) {
             // Open an audio effect control session to allow equalizers to apply audio effects
             Intent i = new Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION);
@@ -224,10 +252,231 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
     @Override
     public void cleanup() {
+        if (scheduler != null) {
+            scheduler.stop();
+        }
         // Immediately drop all pending data
         track.pause();
         track.flush();
 
         track.release();
+    }
+
+    /**
+     * Plays each sample when the host says, for TVs playing together
+     * (StrmLight's docs/synchronized-playback.md): D after the host sent it,
+     * on the host's clock, the same D for every TV ({@link PlayTogether}).
+     * With no D, as soon as it can, as upstream.
+     *
+     * Holding audio for D needs more room than the C library's queue, so the
+     * decoder hands each packet to {@link #queue} and this thread writes the
+     * track, with silence while nothing is due, so the track keeps playing
+     * and its timestamp, which says when the next frame written will be
+     * heard, stays good. Before each packet it compares that with when the
+     * packet is due and skips or adds frames to close the difference.
+     */
+    private final class Scheduler implements Runnable {
+        // Two seconds of 5 ms packets: more than any D.
+        private static final int QUEUE = 400;
+        // As soon as it can, at most this much waits, as upstream.
+        private static final long ASAP_PENDING_NS = 40_000_000L;
+        private static final long TIMESTAMP_EVERY_NS = 200_000_000L;
+        // Allowed for decoding and handing over, in the latency reported.
+        private static final long SLACK_NS = 2_000_000L;
+
+        private final class Packet {
+            final short[] pcm;
+            final long tsMs;
+            final long arrivedNs;
+
+            Packet(short[] pcm, long tsMs, long arrivedNs) {
+                this.pcm = pcm;
+                this.tsMs = tsMs;
+                this.arrivedNs = arrivedNs;
+            }
+        }
+
+        private final HostClock hostClock;
+        private final int channels;
+        private final int sampleRate;
+        private final short[] silence;
+        private final ArrayBlockingQueue<Packet> queue = new ArrayBlockingQueue<>(QUEUE);
+        private final AudioSchedule schedule = new AudioSchedule();
+        private final AudioTimestamp stamp = new AudioTimestamp();
+        private final Thread thread;
+        private volatile boolean stopped;
+
+        // The writer thread's own.
+        private long written;
+        private long stampFrame;
+        private long stampNs;
+        private long stampReadAt;
+        private int underruns;
+        private long leadNs;
+        private long leadSince;
+        private long leadMostNs;
+
+        Scheduler(HostClock hostClock, int channels, int sampleRate, int samplesPerFrame) {
+            this.hostClock = hostClock;
+            this.channels = channels;
+            this.sampleRate = sampleRate;
+            this.silence = new short[samplesPerFrame * channels];
+            this.thread = new Thread(this, "StrmQt audio");
+            thread.setPriority(Thread.MAX_PRIORITY);
+        }
+
+        void start() {
+            thread.start();
+        }
+
+        void stop() {
+            stopped = true;
+            thread.interrupt();
+            // Pausing ends a write waiting on the track.
+            track.pause();
+            try {
+                thread.join(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        /** On the decoder's thread: never blocks. */
+        void arrived(short[] pcm, long tsMs, long arrivedNs) {
+            if (arrivedNs != 0) {
+                ClockEstimate.Result clock = hostClock.estimate();
+                if (clock != null) {
+                    schedule.arrived(tsMs, clock.at(arrivedNs), arrivedNs);
+                }
+            }
+            if (!queue.offer(new Packet(pcm, tsMs, arrivedNs))) {
+                LimeLog.info("StrmQt audio: queue full, a packet dropped");
+            }
+        }
+
+        @Override
+        public void run() {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
+            Packet packet = null;
+            int frame = 0;
+            try {
+                while (!stopped) {
+                    int delayMs = PlayTogether.delayMs();
+                    if (packet == null) {
+                        // Scheduled, silence goes in when nothing is due; as
+                        // soon as it can, nothing is written until there is
+                        // something to play.
+                        packet = delayMs > 0 ? queue.poll() : queue.poll(20, TimeUnit.MILLISECONDS);
+                        frame = 0;
+                    }
+                    long now = System.nanoTime();
+                    Long playAt = playTimeOfNextWrite(now);
+                    if (playAt != null) {
+                        noteLead(playAt - now, now);
+                    }
+                    ClockEstimate.Result clock = hostClock.estimate();
+                    Long base = schedule.baseNs(now);
+                    if (delayMs <= 0 || playAt == null || clock == null || base == null) {
+                        if (packet != null) {
+                            write(packet.pcm, frame, packet.pcm.length / channels - frame);
+                            packet = null;
+                            dropStale(now);
+                        } else if (delayMs > 0) {
+                            write(silence, 0, silence.length / channels);
+                        }
+                        continue;
+                    }
+                    if (packet == null) {
+                        write(silence, 0, silence.length / channels);
+                        continue;
+                    }
+
+                    long due = clock.localAt(AudioSchedule.dueNs(base, packet.tsMs, frame, sampleRate, delayMs));
+                    long error = playAt - due;
+                    PlayTogether together = PlayTogether.current();
+                    if (together != null) {
+                        together.setErrorNs(error);
+                    }
+                    int frames = packet.pcm.length / channels;
+                    int correction = AudioSchedule.correction(error, sampleRate);
+                    if (correction > 0) {
+                        // Late: skip what would be heard late.
+                        frame += correction;
+                        if (frame >= frames) {
+                            packet = null;
+                        }
+                        continue;
+                    }
+                    if (correction < -1) {
+                        // Early: wait, playing silence.
+                        write(silence, 0, Math.min(-correction, silence.length / channels));
+                        continue;
+                    }
+                    if (correction == -1) {
+                        // A little early: one frame twice.
+                        write(packet.pcm, frame, 1);
+                    }
+                    write(packet.pcm, frame, frames - frame);
+                    packet = null;
+                }
+            } catch (InterruptedException e) {
+                // Stopped.
+            }
+        }
+
+        /** Writes `frames` frames from `pcm` at `frame`, blocking while the track is full. */
+        private void write(short[] pcm, int frame, int frames) {
+            if (frames <= 0) {
+                return;
+            }
+            int done = track.write(pcm, frame * channels, frames * channels);
+            if (done > 0) {
+                written += done / channels;
+            }
+        }
+
+        /** When the next frame written will be heard, on System.nanoTime; null until the track says. */
+        private Long playTimeOfNextWrite(long now) {
+            int underrunsNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? track.getUnderrunCount() : 0;
+            if (stampNs == 0 || now - stampReadAt > TIMESTAMP_EVERY_NS || underrunsNow != underruns) {
+                underruns = underrunsNow;
+                stampReadAt = now;
+                if (track.getTimestamp(stamp) && stamp.nanoTime != 0) {
+                    stampFrame = stamp.framePosition;
+                    stampNs = stamp.nanoTime;
+                }
+            }
+            if (stampNs == 0) {
+                return null;
+            }
+            return stampNs + (written - stampFrame) * 1_000_000_000L / sampleRate;
+        }
+
+        /** As soon as it can: at most ASAP_PENDING_NS waits, as upstream. */
+        private void dropStale(long now) {
+            Packet head;
+            while ((head = queue.peek()) != null && head.arrivedNs != 0 && now - head.arrivedNs > ASAP_PENDING_NS) {
+                queue.poll();
+            }
+        }
+
+        /**
+         * How far ahead of now what is written is heard, the most over each
+         * second; with how late packets arrive, it is this TV's latency,
+         * reported to the host.
+         */
+        private void noteLead(long lead, long now) {
+            leadMostNs = Math.max(leadMostNs, lead);
+            if (now - leadSince < 1_000_000_000L) {
+                return;
+            }
+            leadNs = leadMostNs;
+            leadMostNs = 0;
+            leadSince = now;
+            PlayTogether together = PlayTogether.current();
+            if (together != null && schedule.baseNs(now) != null) {
+                together.setLatencyMs((schedule.lateNs(now) + leadNs + SLACK_NS) / 1e6);
+            }
+        }
     }
 }

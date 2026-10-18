@@ -30,6 +30,7 @@ import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.strmqt.HostClock;
+import com.limelight.strmqt.PlayTogether;
 import com.limelight.strmqt.RemoteInput;
 import com.limelight.strmqt.StrmQtPrefs;
 import com.limelight.strmqt.StrmQtSession;
@@ -122,6 +123,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // together line up on (docs/synchronized-playback.md).
     private HostClock hostClock;
     private TimeResponder timeResponder;
+    private PlayTogether playTogether;
 
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
@@ -505,6 +507,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         hostClock = HostClock.forStream(new StrmQtPrefs(this));
         if (hostClock != null) {
             timeResponder = TimeResponder.start(TimeResponder.PORT);
+            playTogether = PlayTogether.forStream(new StrmQtPrefs(this));
         }
         keyboardTranslator = new KeyboardTranslator();
 
@@ -1066,6 +1069,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         if (timeResponder != null) {
             timeResponder.stop();
+        }
+        if (playTogether != null) {
+            playTogether.stop();
         }
         if (controllerHandler != null) {
             controllerHandler.destroy();

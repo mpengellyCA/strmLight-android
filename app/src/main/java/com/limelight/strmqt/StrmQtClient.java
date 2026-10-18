@@ -581,6 +581,41 @@ public final class StrmQtClient {
         }
     }
 
+    /** What POST /api/strmlight/sync was answered. */
+    public static final class SyncAnswer {
+        /** The host does not know the request: a StrmQt from before it. */
+        public final boolean unknown;
+        /** The answer's body; null unless it was a 200. */
+        public final String body;
+
+        SyncAnswer(boolean unknown, String body) {
+            this.unknown = unknown;
+            this.body = body;
+        }
+    }
+
+    /**
+     * Tells StrmQt this TV's own latency while it streams (POST
+     * /api/strmlight/sync, see {@link PlayTogether}), on the calling thread.
+     * Never throws.
+     */
+    public SyncAnswer reportSync(double latencyMs) {
+        Request.Builder request = new Request.Builder().url(baseUrl + "/api/strmlight/sync")
+                .post(RequestBody.create(String.format(java.util.Locale.ROOT, "{\"latencyMs\":%.1f}", latencyMs), JSON));
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token);
+        }
+        try (Response response = http.newCall(request.build()).execute()) {
+            String body = response.body() != null ? response.body().string() : "";
+            if (response.code() == 404) {
+                return new SyncAnswer(true, null);
+            }
+            return new SyncAnswer(false, response.code() == 200 ? body : null);
+        } catch (IOException e) {
+            return new SyncAnswer(false, null);
+        }
+    }
+
     private void setPairing(PairingListener pairing, Pairing next) {
         if (next != pairingStatus) {
             pairingStatus = next;

@@ -256,9 +256,13 @@ public class MoonBridge {
         }
     }
 
-    public static void bridgeArPlaySample(short[] pcmData) {
+    /**
+     * @param rtpTimestamp the host's timestamp of this audio, in ms (LiGetCurrentAudioSampleInfo)
+     * @param receiveTimeNs when its packet arrived, on System.nanoTime; 0 for concealment of a lost one
+     */
+    public static void bridgeArPlaySample(short[] pcmData, int rtpTimestamp, long receiveTimeNs) {
         if (audioRenderer != null) {
-            audioRenderer.playDecodedAudio(pcmData);
+            audioRenderer.playDecodedAudio(pcmData, rtpTimestamp, receiveTimeNs);
         }
     }
 
