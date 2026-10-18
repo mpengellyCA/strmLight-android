@@ -307,8 +307,15 @@ StrmQt's `docs/BRANDING.md`, so the TV reads as part of StrmQt.
   symbol (`drawable-nodpi/strmqt_symbol.png`, rendered from StrmQt's
   `assets/brand/strmqt-symbol.svg`), as StrmQt sets "Strm" and "Qt".
 - **Icons**: the launcher icon is StrmQt's Aperture-Q and is unchanged. The
-  TV banner was redrawn with the symbol and the wordmark in Archivo, and
-  "for StrmQt" in Plex Mono.
+  TV banner (`android:banner`, the card Android TV and Google TV launchers
+  draw) is the symbol and the wordmark in Archivo on the ground with an amber
+  glow, drawn in `store-assets/tv/banner.svg`; `store-assets/tv/render.sh`
+  renders it at xhdpi, xxhdpi and xxxhdpi. Fire TV does not use banners for
+  sideloaded apps: it draws the launcher icon, squared (a 16:9 icon is
+  squashed), in the middle of a grey tile; the full cards Emby and YouTube
+  have come from their Appstore listings. Fire also caches that tile and
+  refreshes it on its own time, so a changed icon can take a while to show,
+  even across a reinstall and a reboot.
 - **Upstream screens** (Settings, dialogs, the stream's own overlays) keep their layouts, but the app theme (`values/styles.xml`)
   gives them the ground, surfaces, text colours and amber accent.
 

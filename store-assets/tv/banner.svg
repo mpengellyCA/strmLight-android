@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  StrmLight's TV banner (android:banner), the card Android TV and Google TV
+  launchers draw. 16:9, drawn at 640x360; render.sh makes the PNGs. Fire TV
+  does not use it: it draws a sideloaded app's icon, squared, on a grey tile,
+  and only Appstore apps get a full card. The mark is StrmQt's
+  (assets/brand/strmqt-symbol.svg in StrmQt); the wordmark is Archivo at
+  StrmQt's display weight, 600.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="markGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFBE53"/>
+      <stop offset="55%" stop-color="#F0A02A"/>
+      <stop offset="100%" stop-color="#C87A10"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+                    gradientTransform="translate(112 180) scale(330 260)">
+      <stop offset="0%" stop-color="#F0A02A" stop-opacity="0.26"/>
+      <stop offset="55%" stop-color="#F0A02A" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#F0A02A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16130F"/>
+      <stop offset="100%" stop-color="#0C0B0A"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#floor)"/>
+  <rect width="640" height="360" fill="url(#glow)"/>
+  <!-- The mark, 512 units scaled into a 170 px square. -->
+  <g transform="translate(8.7 77) scale(0.403)">
+
+  <g fill="url(#markGrad)">
+    <path d="M 328.30 307.60 L 328.30 418.00 A 176.00 176.00 0 0 1 148.36 393.55 L 243.96 338.35 A 86.00 86.00 0 0 0 328.30 307.60 Z"/>
+    <path d="M 247.46 344.41 L 151.86 399.61 A 176.00 176.00 0 0 1 83.06 231.55 L 178.66 286.75 A 86.00 86.00 0 0 0 247.46 344.41 Z"/>
+    <path d="M 175.16 292.81 L 79.56 237.62 A 176.00 176.00 0 0 1 190.70 94.00 L 190.70 204.40 A 86.00 86.00 0 0 0 175.16 292.81 Z"/>
+    <path d="M 183.70 204.40 L 183.70 94.00 A 176.00 176.00 0 0 1 363.64 118.45 L 268.04 173.65 A 86.00 86.00 0 0 0 183.70 204.40 Z"/>
+    <path d="M 264.54 167.59 L 360.14 112.39 A 176.00 176.00 0 0 1 428.94 280.45 L 333.34 225.25 A 86.00 86.00 0 0 0 264.54 167.59 Z"/>
+    <path d="M 336.84 219.19 L 432.44 274.38 A 176.00 176.00 0 0 1 321.30 418.00 L 321.30 307.60 A 86.00 86.00 0 0 0 336.84 219.19 Z"/>
+    <path d="M 336.00 352.00 L 428.00 444.00 A 16 16 0 0 1 406.00 466.00 L 312.00 372.00 Z"/>
+  </g>
+  <path d="M 230.0 208.0 L 230.0 304.0 L 298.0 256.0 Z" fill="url(#markGrad)" stroke="url(#markGrad)" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <text x="209.5" y="211" font-family="Archivo" font-weight="600" font-size="88"
+        letter-spacing="-1"><tspan fill="#F5F1EA">Strm</tspan><tspan fill="#F0A02A">Light</tspan></text>
+</svg>
