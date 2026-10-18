@@ -186,7 +186,10 @@ public final class StreamPreset {
 
         boolean smaller = size[0] != wantWidth || size[1] != wantHeight;
         boolean slower = fps != wantFps;
-        if (smaller || slower || !codec.equals(wantCodec)) {
+        // Automatic resolving to a codec is not a step down.
+        boolean otherCodec = !codec.equals(wantCodec)
+                && !(HostStream.CODEC_AUTO.equals(wantCodec) && !HostStream.CODEC_AUTO.equals(codec));
+        if (smaller || slower || otherCodec) {
             LimeLog.info("StrmQt stream: this device cannot decode " + wantCodec + " at " + wantWidth + "x"
                     + wantHeight + " " + wantFps + " fps; streaming " + codec + " at " + size[0] + "x"
                     + size[1] + " " + fps + " fps");
@@ -208,7 +211,7 @@ public final class StreamPreset {
         if (bitrate != null && (stream.bitrateKbps != null || smaller || slower)) {
             prefs.put(KEY_BITRATE, bitrate);
         }
-        if (stream.codec != null || !codec.equals(wantCodec)) {
+        if (stream.codec != null || otherCodec) {
             prefs.put(KEY_VIDEO_FORMAT, videoFormat(codec));
         }
         if (stream.audio != null) {
@@ -266,17 +269,14 @@ public final class StreamPreset {
                 return Collections.singletonList(HostStream.CODEC_H264);
             case HostStream.CODEC_AUTO:
             default:
-                return Collections.singletonList(HostStream.CODEC_AUTO);
+                // Named rather than left to Moonlight, whose "auto" keeps to
+                // H.264 on decoders it has not vetted, Fire TVs among them.
+                // HEVC looks better at the same bitrate; AV1 only when chosen.
+                return Arrays.asList(HostStream.CODEC_HEVC, HostStream.CODEC_H264);
         }
     }
 
-    /** "auto" decodes when any codec Moonlight may choose does. */
     private static boolean decodes(Decoders decoders, String codec, int width, int height, int fps) {
-        if (HostStream.CODEC_AUTO.equals(codec)) {
-            return decoders.canDecode(HostStream.CODEC_HEVC, width, height, fps)
-                    || decoders.canDecode(HostStream.CODEC_H264, width, height, fps)
-                    || decoders.canDecode(HostStream.CODEC_AV1, width, height, fps);
-        }
         return decoders.canDecode(codec, width, height, fps);
     }
 

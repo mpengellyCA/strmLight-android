@@ -48,7 +48,7 @@ public class StreamPresetTest {
                 "list_resolution", "3840x2160",
                 "list_fps", "30",
                 "seekbar_bitrate_kbps", 40000,
-                "video_format", "auto",
+                "video_format", "forceh265",
                 "list_audio_config", "2",
                 "checkbox_enable_hdr", false,
                 "frame_pacing", "balanced"), prefs);
@@ -62,8 +62,12 @@ public class StreamPresetTest {
                 CURRENT, EVERYTHING).get("video_format"));
         assertEquals("neverh265", StreamPreset.prefsFor(stream(null, null, null, null, "h264", null),
                 CURRENT, EVERYTHING).get("video_format"));
-        assertEquals("auto", StreamPreset.prefsFor(stream(null, null, null, null, "auto", null),
+        // Automatic is HEVC where it decodes: Moonlight's own "auto" keeps to
+        // H.264 on decoders it has not vetted, Fire TVs among them.
+        assertEquals("forceh265", StreamPreset.prefsFor(stream(null, null, null, null, "auto", null),
                 CURRENT, EVERYTHING).get("video_format"));
+        assertEquals("neverh265", StreamPreset.prefsFor(stream(null, null, null, null, "auto", null),
+                CURRENT, decodes(2160, 60, "h264")).get("video_format"));
         assertEquals("51", StreamPreset.prefsFor(stream(null, null, null, null, null, "51"),
                 CURRENT, EVERYTHING).get("list_audio_config"));
         assertEquals("71", StreamPreset.prefsFor(stream(null, null, null, null, null, "71"),
@@ -131,7 +135,7 @@ public class StreamPresetTest {
         Map<String, Object> prefs = StreamPreset.prefsFor(stream(3840, 2160, 30, 40000, "auto", null),
                 CURRENT, decodes(1440, 30, "h264"));
         assertEquals("2560x1440", prefs.get("list_resolution"));
-        assertEquals("auto stays auto", "auto", prefs.get("video_format"));
+        assertEquals("automatic is the codec that decodes", "neverh265", prefs.get("video_format"));
         assertEquals(25000, prefs.get("seekbar_bitrate_kbps"));
     }
 
