@@ -214,8 +214,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Inflate the content
         setContentView(R.layout.activity_game);
 
-        // Start the spinner
-        spinner = SpinnerDialog.displayDialog(this, getResources().getString(R.string.conn_establishing_title),
+        // Start the spinner. StrmQt fork: worded as the launcher was, which
+        // named the host.
+        String connectingTo = getIntent().getStringExtra(EXTRA_PC_NAME);
+        spinner = SpinnerDialog.displayDialog(this, connectingTo != null
+                        ? getResources().getString(R.string.strmqt_connecting_to, connectingTo)
+                        : getResources().getString(R.string.conn_establishing_title),
                 getResources().getString(R.string.conn_establishing_msg), true);
 
         // Read the stream preferences

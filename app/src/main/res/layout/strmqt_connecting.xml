@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Moonlight's "Establishing connection" spinner (utils/SpinnerDialog), drawn
+    as the launcher's "Connecting…" screen so the one runs into the other.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/strmqt_ground"
+    android:orientation="vertical"
+    android:paddingLeft="48dp"
+    android:paddingTop="27dp"
+    android:paddingRight="48dp"
+    android:paddingBottom="27dp">
+
+    <include layout="@layout/strmqt_header" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/strmqtConnectingTitle"
+            style="@style/StrmQt.Body"
+            android:layout_width="720dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/strmqt_text"
+            android:textSize="22sp" />
+
+        <ProgressBar
+            android:id="@+id/strmqtConnectingProgress"
+            style="@android:style/Widget.Material.ProgressBar.Horizontal"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/strmqt_accent"
+            android:indeterminateTintMode="src_in" />
+
+        <TextView
+            android:id="@+id/strmqtConnectingStage"
+            style="@style/StrmQt.Small"
+            android:layout_width="720dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:textColor="@color/strmqt_text_tertiary" />
+
+        <TextView
+            android:id="@+id/strmqtConnectingBack"
+            style="@style/StrmQt.Small"
+            android:layout_width="720dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:gravity="center"
+            android:text="@string/strmqt_connecting_back"
+            android:textColor="@color/strmqt_text_tertiary" />
+    </LinearLayout>
+</LinearLayout>

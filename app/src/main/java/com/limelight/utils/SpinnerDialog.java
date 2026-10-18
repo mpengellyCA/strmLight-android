@@ -4,15 +4,23 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
+import android.view.View;
+import android.widget.TextView;
+
+import com.limelight.R;
+import com.limelight.strmqt.Brand;
 
 public class SpinnerDialog implements Runnable,OnCancelListener {
     private final String title;
     private final String message;
     private final Activity activity;
-    private ProgressDialog progress;
+    // StrmQt fork: the launcher's "Connecting…" screen rather than a
+    // ProgressDialog, which Fire OS draws in its own look.
+    private Dialog progress;
+    private TextView stageView;
     private final boolean finish;
 
     private static final ArrayList<SpinnerDialog> rundownDialogs = new ArrayList<>();
@@ -60,7 +68,9 @@ public class SpinnerDialog implements Runnable,OnCancelListener {
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                progress.setMessage(message);
+                if (stageView != null) {
+                    stageView.setText(message);
+                }
             }
         });
     }
@@ -75,11 +85,15 @@ public class SpinnerDialog implements Runnable,OnCancelListener {
 
         if (progress == null)
         {
-            progress = new ProgressDialog(activity);
-
-            progress.setTitle(title);
-            progress.setMessage(message);
-            progress.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            progress = new Dialog(activity, R.style.StrmQtConnecting);
+            progress.setContentView(R.layout.strmqt_connecting);
+            ((TextView) progress.findViewById(R.id.strmqtWordmark)).setText(Brand.wordmark(activity));
+            ((TextView) progress.findViewById(R.id.strmqtConnectingTitle)).setText(title);
+            stageView = progress.findViewById(R.id.strmqtConnectingStage);
+            stageView.setText(message);
+            progress.findViewById(R.id.strmqtConnectingBack).setVisibility(finish ? View.VISIBLE : View.GONE);
+            Brand.applyFonts(progress.getWindow().getDecorView());
+            Brand.unclip(progress.findViewById(android.R.id.content));
             progress.setOnCancelListener(this);
 
             // If we want to finish the activity when this is killed, make it cancellable

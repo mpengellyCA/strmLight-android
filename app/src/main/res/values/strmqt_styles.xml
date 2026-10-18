@@ -22,6 +22,15 @@
         <item name="android:colorAccent">@color/strmqt_accent</item>
     </style>
 
+    <!-- Moonlight's connecting spinner (utils/SpinnerDialog): the whole screen, as the launcher. -->
+    <style name="StrmQtConnecting" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/strmqt_ground</item>
+        <item name="android:colorBackground">@color/strmqt_ground</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:colorAccent">@color/strmqt_accent</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
     <!-- Every AlertDialog in the app, Moonlight's included (AppTheme, StreamTheme). -->
     <style name="StrmQtAlertDialog" parent="android:Theme.Material.Dialog.Alert">
         <item name="android:colorBackground">@color/strmqt_surface_overlay</item>

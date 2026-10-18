@@ -150,4 +150,7 @@
     <string name="strmqt_advanced_cert_none">No certificate pinned yet. It is pinned when pairing finishes.</string>
 
     <string name="strmqt_wake_notification">Returning to StrmQt on wake</string>
+    <!-- Moonlight's connecting spinner, as the launcher's screen. -->
+    <string name="strmqt_connecting_to">Connecting to %1$s…</string>
+    <string name="strmqt_connecting_back">Back cancels.</string>
 </resources>
