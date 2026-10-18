@@ -29,8 +29,11 @@ import com.limelight.nvstream.input.MouseButtonPacket;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
+import com.limelight.strmqt.HostClock;
 import com.limelight.strmqt.RemoteInput;
+import com.limelight.strmqt.StrmQtPrefs;
 import com.limelight.strmqt.StrmQtSession;
+import com.limelight.strmqt.TimeResponder;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
 import com.limelight.utils.Dialog;
@@ -115,6 +118,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private VirtualController virtualController;
     // StrmQt fork: null unless remote mode is on
     private RemoteInput remoteInput;
+    // The StrmQt host's clock, and this TV's for other TVs: what TVs playing
+    // together line up on (docs/synchronized-playback.md).
+    private HostClock hostClock;
+    private TimeResponder timeResponder;
 
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
@@ -495,6 +502,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 PlatformBinding.getCryptoProvider(this), serverCert);
         controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
         remoteInput = RemoteInput.create(this, controllerHandler);
+        hostClock = HostClock.forStream(new StrmQtPrefs(this));
+        if (hostClock != null) {
+            timeResponder = TimeResponder.start(TimeResponder.PORT);
+        }
         keyboardTranslator = new KeyboardTranslator();
 
         InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
@@ -1049,6 +1060,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         if (remoteInput != null) {
             remoteInput.destroy();
+        }
+        if (hostClock != null) {
+            hostClock.stop();
+        }
+        if (timeResponder != null) {
+            timeResponder.stop();
         }
         if (controllerHandler != null) {
             controllerHandler.destroy();

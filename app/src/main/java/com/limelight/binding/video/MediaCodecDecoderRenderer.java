@@ -19,6 +19,7 @@ import com.limelight.R;
 import com.limelight.nvstream.av.video.VideoDecoderRenderer;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.PreferenceConfiguration;
+import com.limelight.strmqt.HostClock;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -1400,6 +1401,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                         (float)lastTwo.framesLost / lastTwo.totalFrames * 100)).append('\n');
                 sb.append(context.getString(R.string.perf_overlay_netlatency,
                         (int)(rttInfo >> 32), (int)rttInfo)).append('\n');
+                HostClock hostClock = HostClock.current();
+                if (hostClock != null) {
+                    sb.append(hostClock.describe()).append('\n');
+                }
                 if (lastTwo.framesWithHostProcessingLatency > 0) {
                     sb.append(context.getString(R.string.perf_overlay_hostprocessinglatency,
                             (float)lastTwo.minHostProcessingLatency / 10,

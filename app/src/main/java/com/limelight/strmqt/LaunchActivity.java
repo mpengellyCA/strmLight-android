@@ -575,6 +575,7 @@ public class LaunchActivity extends Activity {
                             || answer.kind == StrmQtClient.Vouch.Kind.NONE) {
                         // StrmQt answered: whether it sets the stream is now known.
                         prefs.setStreamFromStrmQt(answer.stream != null);
+                        prefs.setTimePort(answer.timePort);
                     }
                     SunshineVouch.Launch decision = SunshineVouch.atEveryLaunch(stored, answer, presented);
                     if (decision == SunshineVouch.Launch.STREAM && streamPrefs != null) {

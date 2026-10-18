@@ -1,6 +1,7 @@
 # TVs in step: a design for synchronized playback
 
-Status: investigation, 2026-10-18. Nothing here is built yet.
+Status: 2026-10-18. The clock (section 1) is built on the `tv-sync` branches of StrmQt and
+StrmLight; nothing else here is yet.
 
 Several StrmLights can stream one StrmQt host at once — the same film in two rooms, music
 through the house. Today they are close, not in step: each TV shows the live picture after
@@ -89,8 +90,26 @@ Expected accuracy is sub-millisecond on a quiet LAN. Wi-Fi power-save and uplink
 asymmetry bias it by an unknown amount; it has to be measured (below). PTP buys nothing
 without hardware timestamps, which Android does not give.
 
-The reply also carries the group's state: `groupDelayMs` and a generation number. TVs
-then learn a change within half a second without an SSE stream.
+**Closing the triangle.** Each StrmLight answers the same requests while it streams
+(`TimeResponder`, UDP 8339), so two TVs can time each other as well as the host.
+- **What it checks.** Around host → A → B → host the three offsets must add up to zero.
+  What is left is the asymmetry error the host's figures carry, which no single round
+  trip can see. The sync is then measured, not assumed.
+- **More TVs.** With three or more TVs, a least-squares fit over every link spreads out
+  the random error. The direct A↔B link is exactly the quantity the echo depends on.
+- **The limit.** Triangulation cannot remove an asymmetry that is consistent around the
+  loop, and it adds nothing with a single TV.
+
+**Built so far.**
+- StrmQt's `TimeService` and its `timePort` in `GET /api/strmlight/host`.
+- StrmLight's `TimePacket`, `ClockEstimate` (the lowest-delay exchanges of each eighth of
+  a 200-exchange window, with a line through them for skew), `HostClock` (a 20-exchange
+  burst 50 ms apart, then every 250 ms) and `TimeResponder`.
+- The clock's line in the performance overlay.
+
+Checked between Java and C++ on one machine, where the true offset is zero: within 10 µs,
+with a 0.05 ms round trip. Next: TVs report their figures to the host, and the host gives
+each TV its peers to time.
 
 ### 2. Video: map the 90 kHz timeline to host time
 

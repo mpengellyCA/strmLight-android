@@ -48,6 +48,7 @@ public final class StrmQtPrefs {
     private static final String PRESET_APPLIED = "preset_applied";
     /** The paired StrmQt's last answer set the stream (resolution, codec, sound ...). */
     private static final String STREAM_FROM_STRMQT = "stream_from_strmqt";
+    private static final String TIME_PORT = "time_port";
 
     private final SharedPreferences switches;
     private final SharedPreferences store;
@@ -237,5 +238,17 @@ public final class StrmQtPrefs {
 
     public void setStreamFromStrmQt(boolean fromStrmQt) {
         store.edit().putBoolean(STREAM_FROM_STRMQT, fromStrmQt).apply();
+    }
+
+    /**
+     * The UDP port of the StrmQt host's clock (its TimeService), from its last
+     * answer to GET /api/strmlight/host; 0 when it gave none.
+     */
+    public int timePort() {
+        return store.getInt(TIME_PORT, 0);
+    }
+
+    public void setTimePort(int port) {
+        store.edit().putInt(TIME_PORT, port).apply();
     }
 }

@@ -5,6 +5,7 @@ import com.limelight.LimeLog;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -120,15 +121,18 @@ public final class StrmQtClient {
          * answer had none (a StrmQt from before this, or no answer).
          */
         public final HostStream stream;
+        /** The UDP port of the host's clock; 0 when the answer gave none. */
+        public final int timePort;
 
         Vouch(Kind kind, String fingerprint) {
-            this(kind, fingerprint, null);
+            this(kind, fingerprint, null, 0);
         }
 
-        Vouch(Kind kind, String fingerprint, HostStream stream) {
+        Vouch(Kind kind, String fingerprint, HostStream stream, int timePort) {
             this.kind = kind;
             this.fingerprint = fingerprint;
             this.stream = stream;
+            this.timePort = timePort;
         }
 
         @Override
@@ -498,6 +502,19 @@ public final class StrmQtClient {
         }
     }
 
+    /** The "timePort" of a StrmQt answer: a UDP port, or 0 when there is none. */
+    static int timePort(String body) {
+        Map<String, Object> answer = body != null ? StrmQtDiscovery.Json.parseObject(body.trim()) : null;
+        Object port = answer != null ? answer.get("timePort") : null;
+        if (port instanceof Double) {
+            double d = (Double) port;
+            if (d == Math.rint(d) && d > 0 && d <= 65535) {
+                return (int) d;
+            }
+        }
+        return 0;
+    }
+
     /** The vouched fingerprint in a StrmQt answer; null when it is absent, empty or not one. */
     static String sunshineFingerprint(String body) {
         Matcher m = SUNSHINE.matcher(body);
@@ -522,7 +539,7 @@ public final class StrmQtClient {
                 case 200:
                     String fingerprint = sunshineFingerprint(body);
                     return new Vouch(fingerprint != null ? Vouch.Kind.VOUCHED : Vouch.Kind.NONE, fingerprint,
-                            HostStream.fromAnswer(body));
+                            HostStream.fromAnswer(body), timePort(body));
                 case 401:
                     return new Vouch(Vouch.Kind.UNPAIRED, null);
                 case 404:
