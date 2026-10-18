@@ -320,7 +320,8 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private final short[] silence;
         private final long aheadFrames;
         // Heard this much after the track says (StrmQtPrefs.soundOffsetMs), so
-        // written that much earlier, and counted in the latency reported.
+        // written that much earlier, and counted in the latency reported;
+        // negative, before, so later.
         private final long offsetNs;
         private final ArrayBlockingQueue<Packet> queue = new ArrayBlockingQueue<>(QUEUE);
         private final MediaSchedule schedule = new MediaSchedule();

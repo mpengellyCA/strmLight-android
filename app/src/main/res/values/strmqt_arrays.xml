@@ -1,12 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Settings > Sound offset: 0 to StrmQtPrefs.MAX_SOUND_OFFSET_MS, by 10 ms. -->
+    <!-- Settings > Sound offset: StrmQtPrefs.MIN_SOUND_OFFSET_MS to MAX_SOUND_OFFSET_MS,
+         by 5 ms up to 50 ms either way, then by 10 ms. -->
     <string-array name="strmqt_sound_offset_names" translatable="false">
+        <item>50 ms later</item>
+        <item>45 ms later</item>
+        <item>40 ms later</item>
+        <item>35 ms later</item>
+        <item>30 ms later</item>
+        <item>25 ms later</item>
+        <item>20 ms later</item>
+        <item>15 ms later</item>
+        <item>10 ms later</item>
+        <item>5 ms later</item>
         <item>None</item>
+        <item>5 ms earlier</item>
         <item>10 ms earlier</item>
+        <item>15 ms earlier</item>
         <item>20 ms earlier</item>
+        <item>25 ms earlier</item>
         <item>30 ms earlier</item>
+        <item>35 ms earlier</item>
         <item>40 ms earlier</item>
+        <item>45 ms earlier</item>
         <item>50 ms earlier</item>
         <item>60 ms earlier</item>
         <item>70 ms earlier</item>
@@ -55,11 +71,26 @@
         <item>500 ms earlier</item>
     </string-array>
     <string-array name="strmqt_sound_offset_values" translatable="false">
+        <item>-50</item>
+        <item>-45</item>
+        <item>-40</item>
+        <item>-35</item>
+        <item>-30</item>
+        <item>-25</item>
+        <item>-20</item>
+        <item>-15</item>
+        <item>-10</item>
+        <item>-5</item>
         <item>0</item>
+        <item>5</item>
         <item>10</item>
+        <item>15</item>
         <item>20</item>
+        <item>25</item>
         <item>30</item>
+        <item>35</item>
         <item>40</item>
+        <item>45</item>
         <item>50</item>
         <item>60</item>
         <item>70</item>

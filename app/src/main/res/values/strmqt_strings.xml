@@ -25,7 +25,7 @@
     <string name="strmqt_pref_wake_title">Return on wake</string>
     <string name="strmqt_pref_wake_summary">Bring the stream back when the device wakes. Needs the same permission.</string>
     <string name="strmqt_pref_offset_title">Sound offset</string>
-    <string name="strmqt_pref_offset_summary">%s. Playing together with other TVs, this TV plays its sound this much earlier, for delay the TV cannot measure: its own sound processing, a soundbar or a receiver. Raise it while this TV is heard after the others.</string>
+    <string name="strmqt_pref_offset_summary">%s. Playing together with other TVs, this TV plays its sound this much earlier, for delay the TV cannot measure: its own sound processing, a soundbar or a receiver. Earlier while this TV is heard after the others, later while it is heard before them.</string>
     <string-array name="strmqt_transport_names">
         <item>StrmQt Web Remote (recommended)</item>
         <item>Gamepad buttons through Sunshine</item>

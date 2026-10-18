@@ -17,8 +17,9 @@ public final class StrmQtPrefs {
     public static final String KEY_START_ON_BOOT = "strmqt_start_on_boot";
     public static final String KEY_RETURN_ON_WAKE = "strmqt_return_on_wake";
     public static final String KEY_SOUND_OFFSET = "strmqt_sound_offset";
-    /** The most a sound offset may be, in ms. */
+    /** The range of a sound offset, in ms: earlier up to the most, later down to the least. */
     public static final int MAX_SOUND_OFFSET_MS = 500;
+    public static final int MIN_SOUND_OFFSET_MS = -50;
 
     public static final String TRANSPORT_WEB = "web";
     public static final String TRANSPORT_GAMEPAD = "gamepad";
@@ -91,14 +92,15 @@ public final class StrmQtPrefs {
     }
 
     /**
-     * How much earlier this TV plays its sound when playing together, in ms:
-     * the delay after the HDMI port that Android does not see (the TV's own
-     * sound processing, a soundbar or receiver), set by ear.
+     * How much earlier this TV plays its sound when playing together, in ms,
+     * set by ear: the delay after the HDMI port that Android does not see (the
+     * TV's own sound processing, a soundbar or receiver), or, negative, how
+     * much less there is than the TV says.
      */
     public int soundOffsetMs() {
         try {
             int offset = Integer.parseInt(switches.getString(KEY_SOUND_OFFSET, "0"));
-            return Math.max(0, Math.min(MAX_SOUND_OFFSET_MS, offset));
+            return Math.max(MIN_SOUND_OFFSET_MS, Math.min(MAX_SOUND_OFFSET_MS, offset));
         } catch (NumberFormatException | ClassCastException e) {
             return 0;
         }
