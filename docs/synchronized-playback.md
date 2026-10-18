@@ -23,6 +23,12 @@ Targets: video within a frame or two (it can never be better than about one refr
 because each TV's vsync runs on its own crystal); audio within ~5 ms between rooms for
 music (an echo is heard from ~10–20 ms).
 
+**Where it stands (measured by ear, 2026-10-18).** With stock Moonlight in a real home, TVs
+playing the same host differ by well under 200 ms, probably within ~50 ms. Nobody notices
+that in the picture or in input lag, but the sound is a clear echo between rooms. So
+**audio is the problem worth solving first**, and the gap to close is tens of ms, not
+hundreds.
+
 ## What already exists
 
 **Video carries a shared timeline already.** Sunshine stamps every video packet with the
@@ -145,20 +151,35 @@ StrmLight changes:
 - **Lip sync.** Video and audio both follow the host clock, so their relationship is
   whatever it was at capture on the host. No audio-master clock between rooms.
 
-### 4. The group delay *D*, and when sync is on
+### 4. The group delay *D*: line up on the slowest TV
 
 Sync costs latency, and a remote-driven UI wants none. So it is a mode, **on only while
-two or more TVs stream the host**. A single TV keeps today's low-latency path.
+two or more TVs stream the host**. A single TV keeps today's path untouched.
 
-When sync is on, *D* is adaptive:
-- Each TV reports the earliest it could present: its network delay, decode time and audio
-  pipeline latency, measured as above. It reports over the existing HTTPS channel with its
+When it is on, nobody waits for a fixed buffer: **every TV lines up on the slowest one**.
+- **What each TV reports.** Its natural latency, from host capture to sound out, measured
+  with the clock and `getTimestamp`. It reports over the existing HTTPS channel with its
   bearer token, e.g. a new `POST /api/strmlight/sync`.
-- StrmQt sets *D* to the largest report plus a margin, and publishes it in the time reply.
-- Expect 150–300 ms. Fire TV audio paths of 300–500 ms have been reported on some models
-  and firmware (moonlight-android issues #1238, #1423); those raise *D*.
-- When *D* changes, or a TV joins or leaves, the others hold or skip once to the new
-  target.
+- **How *D* is set.** StrmQt sets *D* to the largest report plus a margin for that TV's
+  jitter, and publishes it in the time reply.
+- **The cost.** The slowest TV keeps the latency it has today. The others delay their
+  audio by the difference, the ~50 ms heard as echo now.
+- **Lip sync.** Each TV delays its video by the same amount as its audio, so lip sync on
+  each TV is unchanged. The video timeline (section 2) does this exactly; a plain hold of
+  the same number of ms would also do.
+- **Changes.** When *D* changes, or a TV joins or leaves, the others hold or skip once to
+  the new target.
+- **Fire TV.** Audio paths of 300–500 ms have been reported on some models and firmware
+  (moonlight-android issues #1238, #1423). A TV like that becomes the slowest, and the
+  others wait for it.
+
+### Measuring without a camera
+
+The clock gives every TV a software measurement of the echo. For each audio packet, a TV
+knows the host time it was captured (its timeline) and the host time it came out of the
+DAC (`getTimestamp` mapped through the clock offset). Each TV reports that number, and
+StrmQt shows the spread between TVs in `strmqt admin status` and in Settings. It misses
+only what happens after the HDMI port, which the per-TV offset covers.
 
 ### 5. The last metre: each TV's own latency
 
@@ -200,8 +221,8 @@ estimated from receive times. For music through the house, StrmQt can do better:
 
 | | Video between TVs | Audio between TVs |
 |---|---|---|
-| Today | network + decoder + audio-path differences: tens to hundreds of ms (unmeasured) | the same |
-| Phases 1–4 | about one refresh (≤ 17 ms at 60 Hz) plus each TV's panel latency, after calibration | a few ms plus each TV's audio latency, after calibration |
+| Today | within ~50 ms by ear: not noticed | within ~50 ms by ear: a clear echo |
+| Phases 1–4 | about one refresh (≤ 17 ms at 60 Hz), plus each TV's panel latency until calibrated | a few ms, plus what happens after HDMI until calibrated |
 | Phase 5 audio | — | ~1 ms plus calibration |
 
 These are estimates; the per-model behaviour can only be measured on the TVs.
@@ -212,20 +233,18 @@ Specifically:
 
 ## Plan
 
-0. **Measure first.**
-   - **Test pattern.** StrmQt gets one: a white flash and a click on every whole host
-     second.
-   - **Baseline.** Film two TVs with a phone's slow-motion camera and record their audio,
-     to measure today's skew. Two TVs together have never been tried (StrmQt 0.9.1 notes).
-   - **Calibration.** The same pattern is what calibration uses later.
-1. **Clock.** The host time service in StrmQt and the clock client in StrmLight, with
-   offset, RTT and skew in the performance overlay.
-2. **Video timeline.** `rtpTimestamp` through JNI, the `E` estimate, and the "synced"
-   pacing mode with held frames and scheduled release.
-3. **Audio timeline.** The moonlight-common-c fork with timestamped audio, scheduled
+Audio first, since it is what is heard. Today's ~50 ms is invisible in the picture.
+
+1. **Clock and measurement.**
+   - The host time service in StrmQt and the clock client in StrmLight.
+   - Each TV reports its capture-to-DAC audio latency, and StrmQt shows the spread between
+     TVs. This is the measurement, in place of a camera.
+2. **Audio timeline.** The moonlight-common-c fork with timestamped audio, scheduled
    `AudioTrack` playback, `getTimestamp` feedback and drift correction.
-4. **The group.** Sync on automatically with two or more TVs, adaptive *D*, per-TV
-   offsets in settings, and ALLM.
+3. **The group.** Sync on automatically with two or more TVs, *D* set by the slowest TV,
+   and per-TV offsets in settings.
+4. **Video follows.** `rtpTimestamp` through JNI, the `E` estimate, and each TV's video
+   held by the same delay as its audio, so lip sync is kept. ALLM goes in here too.
 5. **Music grade.** StrmQt's own audio stream, and phone calibration.
 
 Nothing in 1–5 changes Sunshine. Phase 3 is the only one that changes Moonlight's C core.
