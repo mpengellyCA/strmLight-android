@@ -59,6 +59,10 @@
     <string name="strmqt_status_stream_ended">The stream ended.</string>
     <string name="strmqt_status_retrying">%1$s\nTrying again in %2$d s (attempt %3$d of %4$d).</string>
     <string name="strmqt_status_gave_up">%1$s\nGave up reconnecting.</string>
+    <string name="strmqt_status_not_strmqt_sunshine">That is not StrmQt\'s Sunshine: StrmQt does not vouch for the one at %1$s. Choose Set up StrmQt to pair again.</string>
+    <string name="strmqt_status_sunshine_unvouched">StrmQt does not say which Sunshine is its own, so StrmLight will not stream from it. Update StrmQt.</string>
+    <string name="strmqt_status_strmqt_unreachable">StrmQt is not answering, so it cannot vouch for its Sunshine.</string>
+    <string name="strmqt_status_strmqt_cert_changed">StrmQt\'s certificate changed. Choose Set up StrmQt to pair again.</string>
 
     <!-- Setup -->
     <string name="strmqt_setup_title">Set up StrmQt</string>
@@ -98,6 +102,8 @@
     <string name="strmqt_remote_paired">Remote: paired</string>
     <string name="strmqt_setup_cert_changed">StrmQt\'s certificate changed while pairing. Choose Pair to start again.</string>
     <string name="strmqt_setup_cert_not_announced">The Web Remote at %1$s:%2$d does not present the certificate StrmQt announced on the network. Pairing stopped.</string>
+    <string name="strmqt_setup_sunshine_not_strmqt">That is not StrmQt\'s Sunshine: StrmQt does not vouch for the Sunshine at %1$s:%2$d. Check the Sunshine port, then pair again.</string>
+    <string name="strmqt_setup_sunshine_unvouched">StrmQt does not say which Sunshine is its own, so StrmLight will not stream from it. Update StrmQt, then pair again.</string>
     <string name="strmqt_setup_unsupported">This StrmQt cannot pair with StrmLight by code. Update StrmQt, then pair again.</string>
     <string name="strmqt_setup_paired">Paired: the stream and the remote. Starting the stream…\nWeb Remote certificate SHA-256:\n%1$s</string>
     <string name="strmqt_setup_paired_open">Paired: the stream. StrmQt asks for no remote pairing. Starting the stream…\nWeb Remote certificate SHA-256:\n%1$s</string>

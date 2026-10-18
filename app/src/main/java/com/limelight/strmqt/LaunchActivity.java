@@ -41,6 +41,7 @@ import java.util.List;
  *
  * The connection itself is Moonlight's: this finds the host through
  * ComputerManagerService, as ShortcutTrampoline does, and hands over to Game.
+ * It hands over only a Sunshine StrmQt vouches for; see {@link SunshineVouch}.
  */
 public class LaunchActivity extends Activity {
     /** Connect now, whatever this was doing: pairing has just finished. */
@@ -393,16 +394,98 @@ public class LaunchActivity extends Activity {
         if (details.pairState != PairingManager.PairState.PAIRED) {
             // The stream half of pairing is gone (Sunshine forgot this device):
             // pair again with one code. Back from there lands in the menu.
-            showMenu(getString(R.string.strmqt_status_not_paired, hostLabel()));
-            if (prefs.remoteHost() != null) {
-                startActivity(new Intent(this, SetupActivity.class)
-                        .putExtra(SetupActivity.EXTRA_PAIR_NOW, true));
-            }
+            pairAgain(getString(R.string.strmqt_status_not_paired, hostLabel()));
             return;
         }
 
         // Online and paired. One answer is enough.
         binder.stopPolling();
+
+        // Only the Sunshine StrmQt vouches for is streamed from.
+        final String presented = SunshineVouch.fingerprint(details.serverCert);
+        SunshineVouch.Launch decision = SunshineVouch.atLaunch(prefs.sunshineFingerprint(), presented);
+        if (decision == SunshineVouch.Launch.ASK) {
+            askStrmQt(binder, details, presented, attempt);
+        } else {
+            vouchDecided(decision, binder, details, attempt);
+        }
+    }
+
+    /** Opens pairing with one code, over the menu; Back from there lands in the menu. */
+    private void pairAgain(String message) {
+        showMenu(message);
+        if (prefs.remoteHost() != null) {
+            startActivity(new Intent(this, SetupActivity.class)
+                    .putExtra(SetupActivity.EXTRA_PAIR_NOW, true));
+        }
+    }
+
+    /**
+     * Paired by a StrmLight from before StrmQt vouched, so nothing is stored:
+     * asks StrmQt once, over the pinned Web Remote with the token, and keeps
+     * the answer.
+     */
+    private void askStrmQt(final ComputerManagerService.ComputerManagerBinder binder,
+                           final ComputerDetails details, final String presented, final int attempt) {
+        final String host = prefs.remoteHost();
+        final int port = prefs.remotePort();
+        final String cert = prefs.certFingerprint();
+        final String token = prefs.token();
+        if (host == null || cert == null) {
+            // No StrmQt to ask.
+            vouchDecided(SunshineVouch.Launch.NOT_STRMQT, binder, details, attempt);
+            return;
+        }
+        new Thread("StrmQt vouch") {
+            @Override
+            public void run() {
+                final StrmQtClient.Vouch answer = StrmQtClient.askSunshine(host, port, cert, token);
+                LimeLog.info("StrmQt vouches for: " + answer);
+                handler.post(() -> {
+                    if (attempt != attemptId) {
+                        return;
+                    }
+                    if (answer.kind == StrmQtClient.Vouch.Kind.VOUCHED) {
+                        prefs.setSunshineFingerprint(answer.fingerprint);
+                    }
+                    vouchDecided(SunshineVouch.afterAsking(answer, presented), binder, details, attempt);
+                });
+            }
+        }.start();
+    }
+
+    private void vouchDecided(SunshineVouch.Launch decision, ComputerManagerService.ComputerManagerBinder binder,
+                              ComputerDetails details, int attempt) {
+        switch (decision) {
+            case STREAM:
+                findApp(binder, details, attempt);
+                break;
+            case NOT_STRMQT:
+                LimeLog.warning("StrmQt does not vouch for the Sunshine of " + details.uuid + "; not streaming");
+                pairAgain(getString(R.string.strmqt_status_not_strmqt_sunshine, hostLabel()));
+                break;
+            case UNVOUCHED:
+                // Pairing again would stop for the same reason; StrmQt needs updating.
+                showMenu(getString(R.string.strmqt_status_sunshine_unvouched));
+                break;
+            case UNPAIRED:
+                // Removed in StrmQt, as the remote finds out in the stream.
+                prefs.forgetToken();
+                pairAgain(getString(R.string.strmqt_status_not_paired, hostLabel()));
+                break;
+            case CERT_CHANGED:
+                pairAgain(getString(R.string.strmqt_status_strmqt_cert_changed));
+                break;
+            case RETRY:
+            case ASK:
+            default:
+                attemptFailed(getString(R.string.strmqt_status_strmqt_unreachable));
+                break;
+        }
+    }
+
+    private void findApp(final ComputerManagerService.ComputerManagerBinder binder,
+                         final ComputerDetails details, final int attempt) {
         final String uniqueId = binder.getUniqueId();
         final String wanted = prefs.appName();
         new Thread("StrmQt app list") {

@@ -30,18 +30,25 @@ public interface StreamPairer {
         public final String uuid;
         /** The computer's name as Sunshine gives it; set when paired. */
         public final String name;
+        /**
+         * The certificate of the Sunshine this paired with, as {@link CertPin#fingerprint}
+         * gives it; set when paired, null when it is not known. StrmQt has to
+         * vouch for it before anything streams from it.
+         */
+        public final String certFingerprint;
         /** What went wrong, for the log and the screen; may be null. */
         public final String detail;
 
-        public Outcome(Result result, String uuid, String name, String detail) {
+        public Outcome(Result result, String uuid, String name, String certFingerprint, String detail) {
             this.result = result;
             this.uuid = uuid;
             this.name = name;
+            this.certFingerprint = certFingerprint;
             this.detail = detail;
         }
 
         public static Outcome of(Result result, String detail) {
-            return new Outcome(result, null, null, detail);
+            return new Outcome(result, null, null, null, detail);
         }
 
         public boolean paired() {

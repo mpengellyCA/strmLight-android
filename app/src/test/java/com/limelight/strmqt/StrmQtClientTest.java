@@ -34,6 +34,10 @@ public class StrmQtClientTest {
             Collections.synchronizedList(new ArrayList<StrmQtClient.Pairing>());
     private volatile boolean paired;
     private volatile String pairedToken;
+    private volatile String pairedSunshine;
+    /** The fingerprint the stand-in StrmQt vouches for as its Sunshine's. */
+    private static final String SUNSHINE =
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     @BeforeClass
     public static void makeCertificates() throws Exception {
@@ -76,8 +80,9 @@ public class StrmQtClientTest {
             }
 
             @Override
-            public void onPaired(String token) {
+            public void onPaired(String token, String sunshineFingerprint) {
                 pairedToken = token;
+                pairedSunshine = sunshineFingerprint;
                 paired = true;
             }
         });
@@ -252,7 +257,7 @@ public class StrmQtClientTest {
             }
 
             @Override
-            public void onPaired(String token) {
+            public void onPaired(String token, String sunshineFingerprint) {
                 paired = true;
             }
         });
@@ -427,6 +432,108 @@ public class StrmQtClientTest {
         awaitPairing(StrmQtClient.Pairing.CERT_CHANGED, 5000);
         assertEquals("neither the token nor the code reaches a server that is not the paired one",
                 0, server.requests);
+    }
+
+    // StrmQt vouching for its Sunshine
+
+    @Test
+    public void theAnswerToTheCodeNamesStrmQtsSunshine() throws Exception {
+        server.sunshineFingerprint = SUNSHINE;
+        connect(null);
+        startPairing(CODE);
+        awaitPairing(StrmQtClient.Pairing.WAITING, 5000);
+        server.typeCode(CODE);
+        awaitPaired(5000);
+        assertEquals(SUNSHINE, pairedSunshine);
+    }
+
+    @Test
+    public void anAnswerWithoutTheSunshineSaysNothing() throws Exception {
+        connect(null);
+        startPairing(CODE);
+        server.typeCode(CODE);
+        awaitPaired(5000);
+        assertTrue(server.tokens.contains(pairedToken));
+        assertNull(pairedSunshine);
+    }
+
+    @Test
+    public void aTokenStillGoodNamesNoSunshineWithoutBeingAsked() throws Exception {
+        server.sunshineFingerprint = SUNSHINE;
+        String token = server.pairDevice();
+        connect(token);
+        startPairing(CODE);
+        awaitPaired(5000);
+        assertEquals(token, pairedToken);
+        assertNull(pairedSunshine);
+    }
+
+    @Test
+    public void askingNamesTheSunshineForAPairedToken() throws Exception {
+        server.sunshineFingerprint = SUNSHINE.toUpperCase(Locale.ROOT);
+        StrmQtClient.Vouch answer = StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(),
+                server.pairDevice());
+        assertEquals(StrmQtClient.Vouch.Kind.VOUCHED, answer.kind);
+        assertEquals(SUNSHINE, answer.fingerprint);
+    }
+
+    @Test
+    public void askingWithAnUnknownTokenIsUnpaired() throws Exception {
+        server.sunshineFingerprint = SUNSHINE;
+        StrmQtClient.Vouch answer = StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(),
+                "not-a-token");
+        assertEquals(StrmQtClient.Vouch.Kind.UNPAIRED, answer.kind);
+        assertNull(answer.fingerprint);
+        assertEquals(StrmQtClient.Vouch.Kind.UNPAIRED,
+                StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), null).kind);
+    }
+
+    @Test
+    public void askingAStrmQtThatDoesNotSayIsNone() throws Exception {
+        String token = server.pairDevice();
+        assertEquals("absent", StrmQtClient.Vouch.Kind.NONE,
+                StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), token).kind);
+        server.sunshineFingerprint = "";
+        assertEquals("empty", StrmQtClient.Vouch.Kind.NONE,
+                StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), token).kind);
+        server.sunshineFingerprint = "not a fingerprint";
+        assertEquals("garbage", StrmQtClient.Vouch.Kind.NONE,
+                StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), token).kind);
+        server.sunshineFingerprint = SUNSHINE;
+        server.noVouching = true;
+        assertEquals("a StrmQt from before vouching", StrmQtClient.Vouch.Kind.NONE,
+                StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), token).kind);
+    }
+
+    @Test
+    public void askingAStrmQtWithPairingOffNeedsNoToken() throws Exception {
+        server.requirePin = false;
+        server.sunshineFingerprint = SUNSHINE;
+        StrmQtClient.Vouch answer = StrmQtClient.askSunshine("127.0.0.1", server.port(), fingerprint(), null);
+        assertEquals(StrmQtClient.Vouch.Kind.VOUCHED, answer.kind);
+        assertEquals(SUNSHINE, answer.fingerprint);
+    }
+
+    @Test
+    public void askingAStrmQtThatIsNotThereIsUnreachable() throws Exception {
+        String pinned = fingerprint();
+        int port = server.port();
+        server.stop();
+        assertEquals(StrmQtClient.Vouch.Kind.UNREACHABLE,
+                StrmQtClient.askSunshine("127.0.0.1", port, pinned, "token").kind);
+    }
+
+    @Test
+    public void askingAnotherCertificateSendsNothing() throws Exception {
+        String paired = CertPin.fingerprint(identity.cert);
+        String token = server.pairDevice();
+        int port = server.port();
+        server.stop();
+        server = new FakeStrmQt(otherIdentity, port);
+        server.sunshineFingerprint = SUNSHINE;
+        assertEquals(StrmQtClient.Vouch.Kind.CERT_CHANGED,
+                StrmQtClient.askSunshine("127.0.0.1", port, paired, token).kind);
+        assertEquals("the token does not reach a server that is not the paired one", 0, server.requests);
     }
 
     @Test

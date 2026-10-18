@@ -41,7 +41,9 @@ import javax.net.ssl.SSLServerSocket;
  * then gets a token for the right code or 403 for a wrong one (a typed code
  * dies after five misses); 429 while locked out; tokens that are kept until
  * removed (they outlive a restart when the set is handed on); and POSTs that
- * must be JSON.
+ * must be JSON. StrmQt vouches for its Sunshine: the answer to the right code
+ * names the Sunshine certificate's fingerprint, and so does
+ * GET /api/strmlight/host for a paired token.
  */
 final class FakeStrmQt {
     /** A certificate and its key, so a "restarted" server can present the same one. */
@@ -96,6 +98,13 @@ final class FakeStrmQt {
     volatile boolean oldStrmQt;
     volatile boolean lockedOut;
     volatile long actionDelayMs;
+    /** The fingerprint StrmQt vouches for as its Sunshine's; null leaves it out. */
+    volatile String sunshineFingerprint;
+    /** A StrmQt from before vouching: GET /api/strmlight/host is 404, the pairing answer has no fingerprint. */
+    volatile boolean noVouching;
+    /** GET /api/strmlight/host answers 401 to every token. */
+    volatile boolean hostRefusesTokens;
+    final AtomicInteger hostRequests = new AtomicInteger();
     volatile int requests;
     /** The StrmLight code someone typed into StrmQt; null when there is none. */
     private String typedCode;
@@ -209,6 +218,7 @@ final class FakeStrmQt {
                 requests++;
                 String[] answer = request.path.equals("/api/auth/pin") ? authPin(request)
                         : request.path.equals("/api/action") ? action(request)
+                        : request.path.equals("/api/strmlight/host") && !noVouching ? host(request)
                         : new String[]{"404", "{\"error\":\"Unknown endpoint\"}"};
                 byte[] payload = answer[1].getBytes(StandardCharsets.UTF_8);
                 out.write(("HTTP/1.1 " + answer[0] + " X\r\nContent-Type: application/json\r\n"
@@ -277,12 +287,28 @@ final class FakeStrmQt {
         }
         if (request.body.equals("{\"pin\":\"" + typedCode + "\"}")) {
             typedCode = null; // one code, one device
-            return new String[]{"200", "{\"token\":\"" + pairDevice() + "\"}"};
+            return new String[]{"200", "{\"token\":\"" + pairDevice() + "\"" + vouch() + "}"};
         }
         if (++codeMisses >= MAX_CODE_MISSES) {
             typedCode = null;
         }
         return new String[]{"403", "{\"error\":\"Invalid PIN\"}"};
+    }
+
+    private String vouch() {
+        String fingerprint = sunshineFingerprint;
+        return fingerprint == null || noVouching ? "" : ",\"sunshineFingerprint\":\"" + fingerprint + "\"";
+    }
+
+    private String[] host(Request request) {
+        hostRequests.incrementAndGet();
+        if (!request.method.equals("GET")) {
+            return new String[]{"405", "{\"error\":\"Method not allowed\"}"};
+        }
+        if ((requirePin && !authorized(request)) || hostRefusesTokens) {
+            return new String[]{"401", "{\"error\":\"Unauthorized\"}"};
+        }
+        return new String[]{"200", "{\"name\":\"StrmQt\"" + vouch() + "}"};
     }
 
     private String[] action(Request request) {

@@ -969,6 +969,10 @@ public class SetupActivity extends Activity {
                 return getString(R.string.strmqt_setup_cert_changed);
             case CERT_NOT_ANNOUNCED:
                 return getString(R.string.strmqt_setup_cert_not_announced, c.host, c.remotePort);
+            case SUNSHINE_NOT_STRMQT:
+                return getString(R.string.strmqt_setup_sunshine_not_strmqt, c.host, c.sunshinePort);
+            case SUNSHINE_UNVOUCHED:
+                return getString(R.string.strmqt_setup_sunshine_unvouched);
             case UNSUPPORTED:
             default:
                 return getString(R.string.strmqt_setup_unsupported);
@@ -1029,6 +1033,7 @@ public class SetupActivity extends Activity {
 
         prefs.setHost(c.host, c.name, c.remotePort, c.sunshinePort);
         prefs.setRemotePairing(c.host, c.remotePort, result.token, result.fingerprint);
+        prefs.setSunshineFingerprint(result.sunshineFingerprint);
         prefs.setRemoteMode(true);
         prefs.setComputer(result.computerUuid, c.name != null ? c.name : result.computerName);
         showCert(result.fingerprint);

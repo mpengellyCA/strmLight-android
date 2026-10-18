@@ -173,8 +173,28 @@ StrmLight 50 requests in any 95 s; asking every 2 s stays under that.
 | Not the certificate discovery announced | "does not present the certificate StrmQt announced" | Stops pairing, without sending a code |
 | `GET` without `pairing` (a StrmQt from before this) | "This StrmQt cannot pair with StrmLight by code" | Stops pairing, without sending a code |
 
-When both halves are paired, StrmLight stores the host, both ports, the
-token and the certificate, chooses StrmQt's Sunshine as the host to connect
+**StrmQt vouches for its Sunshine.** StrmLight streams only from the
+Sunshine its StrmQt vouches for, never a plain Sunshine, nor the desktop's
+own Sunshine on the same machine. StrmQt names its Sunshine's certificate
+(lowercase hex SHA-256 of the DER) over the Web Remote, which is pinned and
+needs the token: as `"sunshineFingerprint"` in the `200 {"token": ...}`
+answer to the code, and, when no code was needed (a held token still good,
+or pairing off), in `GET /api/strmlight/host` with
+`Authorization: Bearer <token>`. StrmLight compares it with the certificate
+Moonlight pinned for the Sunshine the stream half paired with (the one
+pairing gave, or the stored one when Sunshine already knew this device).
+
+| StrmQt says | The screen says | StrmLight |
+|---|---|---|
+| The certificate the stream paired with | "Connected" | Stores it with the rest |
+| Another certificate (or the stream's is not known) | "That is not StrmQt's Sunshine … Check the Sunshine port" | Stops pairing; stores nothing |
+| Nothing (absent, empty, or `404`: a StrmQt from before this) | "StrmQt does not say which Sunshine is its own … Update StrmQt" | Stops pairing; stores nothing |
+| `401` to a held token | (pairs by code) | Asks with the code; that answer names the Sunshine |
+| No answer | "does not answer … Still trying" | Asks again in 2 s |
+
+When both halves are paired and the Sunshine is the vouched one, StrmLight
+stores the host, both ports, the token, the certificate and the vouched
+Sunshine's certificate, chooses StrmQt's Sunshine as the host to connect
 to, turns remote mode on, and starts the stream 2.5 s later.
 
 - Nothing new is sent once the screen is not in front (another app, the
@@ -295,6 +315,20 @@ on launch on, it finds the host through Moonlight's `ComputerManagerService`
 (sending Wake-on-LAN if it is offline), looks up the app named `StrmQt`
 (or the only app there is) and starts Moonlight's `Game`.
 
+Before it streams, the paired Sunshine's pinned certificate has to be the
+one StrmQt vouched for (`SunshineVouch`). A device paired before StrmQt
+vouched has none stored: it asks `GET /api/strmlight/host` once, over the
+pinned Web Remote with the stored token, and keeps the answer.
+
+| | StrmLight |
+|---|---|
+| The vouched Sunshine | Streams |
+| Another Sunshine | Does not stream: "That is not StrmQt's Sunshine", and opens pairing |
+| Nothing stored, StrmQt does not say | Does not stream: "Update StrmQt" (asks again next time) |
+| Nothing stored, `401` | Forgets the token and opens pairing, as a removed device does |
+| Nothing stored, StrmQt's certificate changed | Opens pairing |
+| Nothing stored, StrmQt does not answer | A failed attempt: tried again after 1, 2, 4 … s, as below |
+
 A stream that fails to start or ends without the user asking is started
 again after 1, 2, 4, 8, 15 and 30 s; then it gives up to the menu. A stream
 that stayed up 30 s resets the count. Disconnect from the menu does not
@@ -374,6 +408,7 @@ Read from StrmQt at `1d5cebf`:
 | Gestures: repeat timing, long presses, hold-Back, no run-on | Unit tests |
 | Web Remote client: pinning; pairing by code (waiting, typed in, wrong code, 429 wait, pairing off, a held token still good or removed, older StrmQt, the device-name header); staying paired across a restart; a removed device not looping on `401`; recovery; dropping stale presses | Unit tests, against a stand-in server written from StrmQt's source |
 | Discovery: reading replies (complete, unknown fields, missing or bad ports, bad fingerprints, garbage), deduplication, the probe and its timing over loopback | Unit tests, against a stand-in host on loopback (never port 8338) |
+| StrmQt vouching for its Sunshine: the vouched one paired, another refused, none (absent, or a StrmQt from before) refused, an already-paired Sunshine checked, a held token StrmQt will not vouch with pairing by code; asking `/api/strmlight/host` (vouched, unpaired, none, pairing off, unreachable, another certificate); the launcher's decisions | Unit tests, against the stand-in Web Remote and Sunshine (`SunshineVouchTest`); not yet against StrmQt or on a device |
 | One-code pairing: both halves from one entry; a stale Sunshine session (`409`) retried until it clears; a wrong PIN; Sunshine unreachable or refusing; halves already paired; a token held for another certificate; pausing (including a Moonlight request finishing while paused); the announced certificate checked; a new code; lockout; an older StrmQt; stopping | Unit tests, with a stand-in Sunshine behind the stream-pairing interface and the stand-in Web Remote |
 | First-run decisions: what opening the app does, which screen follows a search (one, several, none, hosts that cannot stream, a host found late, Pair again with the stored host, after the user stopped pairing), the chooser's order and when it shows addresses, the code screen's ticks and its one line of trouble | Unit tests (`FirstRunTest`) |
 | Every simple setup screen, Advanced setup and back, live discovery finding StrmQt, the launch straight into the stream, the menu over a running stream, upstream's Settings in the palette | On a Fire TV (API 28), through the debug preview, which stores nothing; the TV kept its pairing |

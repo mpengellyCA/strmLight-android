@@ -31,6 +31,7 @@ From then on, opening StrmLight goes straight to StrmQt. Hold **Back** for two s
 
 - **Finds StrmQt by itself** with a UDP broadcast to port 8338, answered only on the local network.
 - **One code pairs everything.** The code StrmLight shows is also its Moonlight PIN: StrmQt arms its remote with it and enters it into its own Sunshine.
+- **Streams only StrmQt's own Sunshine.** StrmQt vouches for its Sunshine's certificate over the pinned Web Remote, and StrmLight streams only from the Sunshine its StrmQt vouches for: a plain Sunshine, or the desktop's own on the same machine, is refused. This needs a StrmQt newer than 0.9.0; an older one is refused with a message to update it.
 - **The remote goes straight to StrmQt** through StrmQt's Web Remote, pinned to its certificate, rather than as key presses through the stream.
 - **Connects on launch and reconnects** by itself after a dropped stream.
 - **Looks like StrmQt**: the same warm black, amber accent and type, with focus you can see from the couch.

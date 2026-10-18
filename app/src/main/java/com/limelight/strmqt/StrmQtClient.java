@@ -83,9 +83,48 @@ public final class StrmQtClient {
         /**
          * Paired, and pairing has stopped.
          *
-         * @param token the token to keep, or null when StrmQt asks for no pairing
+         * @param token               the token to keep, or null when StrmQt asks for no pairing
+         * @param sunshineFingerprint the certificate StrmQt vouches for as its Sunshine's, from
+         *                            the answer to the code; null when that answer did not say
+         *                            (or there was none: a held token was still good, or StrmQt
+         *                            asks for no pairing), and {@link #askSunshine(String, int,
+         *                            String, String)} has to ask
          */
-        void onPaired(String token);
+        void onPaired(String token, String sunshineFingerprint);
+    }
+
+    /**
+     * What StrmQt says about its Sunshine (GET /api/strmlight/host), over the
+     * pinned certificate and with the token: the Sunshine StrmLight may stream
+     * from is the one StrmQt vouches for here, and no other.
+     */
+    public static final class Vouch {
+        public enum Kind {
+            /** StrmQt vouches for the Sunshine with this certificate. */
+            VOUCHED,
+            /** StrmQt does not say (it could not read the certificate, or it is older than this). */
+            NONE,
+            /** StrmQt does not know this device's token. */
+            UNPAIRED,
+            /** StrmQt did not answer. */
+            UNREACHABLE,
+            /** StrmQt presents a different certificate than the one that was paired. */
+            CERT_CHANGED
+        }
+
+        public final Kind kind;
+        /** Lowercase hex, as {@link CertPin#fingerprint} gives it; set when VOUCHED. */
+        public final String fingerprint;
+
+        Vouch(Kind kind, String fingerprint) {
+            this.kind = kind;
+            this.fingerprint = fingerprint;
+        }
+
+        @Override
+        public String toString() {
+            return kind + (fingerprint != null ? " " + fingerprint : "");
+        }
     }
 
     /** A press older than this when its turn comes is dropped, not sent. */
@@ -105,6 +144,7 @@ public final class StrmQtClient {
     private static final Pattern AUTHORIZED = Pattern.compile("\"authorized\"\\s*:\\s*true");
     private static final Pattern REQUIRED = Pattern.compile("\"required\"\\s*:\\s*true");
     private static final Pattern PAIRING = Pattern.compile("\"pairing\"\\s*:");
+    private static final Pattern SUNSHINE = Pattern.compile("\"sunshineFingerprint\"\\s*:\\s*\"([^\"]*)\"");
 
     /** What GET /api/auth/pin says about this device. */
     private enum Auth { OPEN, AUTHORIZED, NEEDS_PAIRING, OLD_STRMQT }
@@ -380,7 +420,7 @@ public final class StrmQtClient {
             if (probeFirst) {
                 Auth auth = probe();
                 if (auth == Auth.OPEN || auth == Auth.AUTHORIZED) {
-                    paired(pairing, auth == Auth.OPEN ? null : token);
+                    paired(pairing, auth == Auth.OPEN ? null : token, null);
                     return;
                 }
                 if (auth == Auth.OLD_STRMQT) {
@@ -407,7 +447,7 @@ public final class StrmQtClient {
                         if (!m.find()) {
                             throw new IOException("No token in the pairing answer");
                         }
-                        paired(pairing, m.group(1));
+                        paired(pairing, m.group(1), sunshineFingerprint(body));
                         return;
                     case 403:
                         setPairing(pairing, Pairing.WRONG_CODE);
@@ -439,11 +479,75 @@ public final class StrmQtClient {
         }
     }
 
-    private void paired(PairingListener pairing, String newToken) {
+    private void paired(PairingListener pairing, String newToken, String sunshineFingerprint) {
         token = newToken;
         setState(State.UP);
         if (!stopped) {
-            pairing.onPaired(newToken);
+            pairing.onPaired(newToken, sunshineFingerprint);
+        }
+    }
+
+    /** The vouched fingerprint in a StrmQt answer; null when it is absent, empty or not one. */
+    static String sunshineFingerprint(String body) {
+        Matcher m = SUNSHINE.matcher(body);
+        return m.find() ? StrmQtDiscovery.normalizeFingerprint(m.group(1)) : null;
+    }
+
+    // The Sunshine StrmQt vouches for
+
+    /**
+     * Asks StrmQt which Sunshine is its own (GET /api/strmlight/host, with
+     * the token when there is one), on the calling thread. Only on a client
+     * that was never started: the token is read here, not on the executor.
+     */
+    private Vouch askSunshine() {
+        Request.Builder request = new Request.Builder().url(baseUrl + "/api/strmlight/host");
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token);
+        }
+        try (Response response = http.newCall(request.build()).execute()) {
+            String body = response.body() != null ? response.body().string() : "";
+            switch (response.code()) {
+                case 200:
+                    String fingerprint = sunshineFingerprint(body);
+                    return new Vouch(fingerprint != null ? Vouch.Kind.VOUCHED : Vouch.Kind.NONE, fingerprint);
+                case 401:
+                    return new Vouch(Vouch.Kind.UNPAIRED, null);
+                case 404:
+                    // A StrmQt from before this does not know the request.
+                    return new Vouch(Vouch.Kind.NONE, null);
+                default:
+                    LimeLog.warning("StrmQt answered " + response.code() + " to /api/strmlight/host");
+                    return new Vouch(Vouch.Kind.UNREACHABLE, null);
+            }
+        } catch (IOException e) {
+            if (CertPin.isMismatch(e)) {
+                return new Vouch(Vouch.Kind.CERT_CHANGED, null);
+            }
+            LimeLog.warning("StrmQt remote: " + e);
+            return new Vouch(Vouch.Kind.UNREACHABLE, null);
+        }
+    }
+
+    /**
+     * Asks the StrmQt at host:port, over the pinned certificate, which
+     * Sunshine is its own. Blocks, so never on the main thread; one request,
+     * no retries, and it never throws.
+     *
+     * @param token the paired token, or null when StrmQt asks for no pairing
+     */
+    public static Vouch askSunshine(String host, int port, String certFingerprint, String token) {
+        StrmQtClient client;
+        try {
+            client = new StrmQtClient(host, port, certFingerprint, token, null);
+        } catch (GeneralSecurityException | RuntimeException e) {
+            LimeLog.warning("StrmQt remote: " + e);
+            return new Vouch(Vouch.Kind.UNREACHABLE, null);
+        }
+        try {
+            return client.askSunshine();
+        } finally {
+            client.stop();
         }
     }
 

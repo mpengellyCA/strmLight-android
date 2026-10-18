@@ -23,6 +23,11 @@ import java.util.concurrent.TimeUnit;
  * a Moonlight request already waiting on the host is left to finish, since it
  * is one request rather than polling and cancelling it is not possible.
  *
+ * Both halves paired is not yet done: StrmQt has to vouch for the Sunshine
+ * the stream half paired with (see {@link SunshineVouch}). It names its
+ * Sunshine's certificate in the answer to the code, or, when no code was
+ * needed, when asked; a Sunshine it does not vouch for stops pairing.
+ *
  * All state lives on one thread of its own; the listener is called there.
  */
 public final class OneCodePairing {
@@ -59,7 +64,11 @@ public final class OneCodePairing {
         /** Stops pairing: the certificate is not the one the host announced. */
         CERT_NOT_ANNOUNCED,
         /** Stops pairing: this StrmQt cannot pair by code. */
-        UNSUPPORTED
+        UNSUPPORTED,
+        /** Stops pairing: the stream paired with a Sunshine StrmQt does not vouch for. */
+        SUNSHINE_NOT_STRMQT,
+        /** Stops pairing: StrmQt does not say which Sunshine is its own; it needs updating. */
+        SUNSHINE_UNVOUCHED
     }
 
     /** Where to pair. */
@@ -91,12 +100,16 @@ public final class OneCodePairing {
         /** The Web Remote token; null when StrmQt asks for no pairing. */
         public final String token;
         public final String fingerprint;
+        /** The certificate StrmQt vouches for as its Sunshine's, which the stream paired with. */
+        public final String sunshineFingerprint;
 
-        Result(String computerUuid, String computerName, String token, String fingerprint) {
+        Result(String computerUuid, String computerName, String token, String fingerprint,
+               String sunshineFingerprint) {
             this.computerUuid = computerUuid;
             this.computerName = computerName;
             this.token = token;
             this.fingerprint = fingerprint;
+            this.sunshineFingerprint = sunshineFingerprint;
         }
     }
 
@@ -108,7 +121,10 @@ public final class OneCodePairing {
         /** Both halves are paired; everything has stopped. */
         void onDone(Result result);
 
-        /** The remote half cannot go on (see RemoteState); everything has stopped. */
+        /**
+         * Pairing cannot go on (see RemoteState): the remote half, or StrmQt
+         * not vouching for the Sunshine. Everything has stopped.
+         */
         void onStopped(RemoteState why);
     }
 
@@ -154,6 +170,12 @@ public final class OneCodePairing {
     private ScheduledFuture<?> remoteRetry;
     private boolean remotePaired;
     private String token;
+    // The token startClient offered StrmQt, and whether StrmQt refused to vouch with it.
+    private String heldToken;
+    private boolean heldTokenRefused;
+
+    private String vouched;
+    private boolean vouching;
 
     public OneCodePairing(Target target, String code, String deviceName, StreamPairer pairer, Listener listener) {
         this.target = target;
@@ -350,7 +372,13 @@ public final class OneCodePairing {
     // The remote half
 
     private void kickRemote() {
-        if (remotePaired || client != null || fetching || remoteRetry != null) {
+        if (remotePaired) {
+            if (vouched == null) {
+                askVouch();
+            }
+            return;
+        }
+        if (client != null || fetching || remoteRetry != null) {
             return;
         }
         if (fingerprint == null) {
@@ -411,7 +439,9 @@ public final class OneCodePairing {
     }
 
     private void startClient() {
-        String held = fingerprint.equalsIgnoreCase(target.knownFingerprint) ? target.knownToken : null;
+        String held = !heldTokenRefused && fingerprint.equalsIgnoreCase(target.knownFingerprint)
+                ? target.knownToken : null;
+        heldToken = held;
         final StrmQtClient c;
         try {
             c = new StrmQtClient(target.host, target.remotePort, fingerprint, held, null);
@@ -438,10 +468,10 @@ public final class OneCodePairing {
             }
 
             @Override
-            public void onPaired(final String newToken) {
+            public void onPaired(final String newToken, final String sunshineFingerprint) {
                 post(() -> {
                     if (c == client) {
-                        remotePaired(newToken);
+                        remotePaired(newToken, sunshineFingerprint);
                     }
                 });
             }
@@ -471,12 +501,82 @@ public final class OneCodePairing {
         }
     }
 
-    private void remotePaired(String newToken) {
+    private void remotePaired(String newToken, String sunshineFingerprint) {
         remotePaired = true;
         token = newToken;
         stopRemote();
         setRemote(RemoteState.PAIRED);
-        checkDone();
+        if (sunshineFingerprint != null) {
+            vouched = sunshineFingerprint;
+            checkDone();
+        } else {
+            // No code was needed, or the answer to it did not say.
+            askVouch();
+        }
+    }
+
+    // StrmQt vouching for its Sunshine
+
+    private void askVouch() {
+        if (vouching || remoteRetry != null || !active()) {
+            return;
+        }
+        vouching = true;
+        final String askToken = token;
+        final String pin = fingerprint;
+        try {
+            workers.execute(() -> {
+                final StrmQtClient.Vouch answer =
+                        StrmQtClient.askSunshine(target.host, target.remotePort, pin, askToken);
+                post(() -> vouchAnswered(answer));
+            });
+        } catch (RejectedExecutionException e) {
+            vouching = false;
+        }
+    }
+
+    private void vouchAnswered(StrmQtClient.Vouch answer) {
+        vouching = false;
+        LimeLog.info("StrmQt vouches for: " + answer);
+        if (stopped || !remotePaired) {
+            return;
+        }
+        switch (answer.kind) {
+            case VOUCHED:
+                vouched = answer.fingerprint;
+                setRemote(RemoteState.PAIRED);
+                checkDone();
+                break;
+            case UNPAIRED:
+                if (token != null && token.equals(heldToken)) {
+                    // A token from an earlier pairing that StrmQt will not vouch
+                    // with: pair by code, whose answer names the Sunshine.
+                    heldTokenRefused = true;
+                    remotePaired = false;
+                    token = null;
+                    setRemote(RemoteState.STARTING);
+                    kick();
+                } else {
+                    remoteFailed(RemoteState.SUNSHINE_UNVOUCHED);
+                }
+                break;
+            case CERT_CHANGED:
+                remoteFailed(RemoteState.CERT_CHANGED);
+                break;
+            case NONE:
+                remoteFailed(RemoteState.SUNSHINE_UNVOUCHED);
+                break;
+            case UNREACHABLE:
+            default:
+                setRemote(RemoteState.UNREACHABLE);
+                if (!paused) {
+                    remoteRetry = schedule(() -> {
+                        remoteRetry = null;
+                        kick();
+                    }, remoteRetryMs);
+                }
+                break;
+        }
     }
 
     private void remoteFailed(RemoteState why) {
@@ -503,9 +603,16 @@ public final class OneCodePairing {
     }
 
     private void checkDone() {
-        if (streamPaired != null && remotePaired && !stopped) {
-            halt();
-            listener.onDone(new Result(streamPaired.uuid, streamPaired.name, token, fingerprint));
+        if (streamPaired == null || !remotePaired || vouched == null || stopped) {
+            return;
         }
+        if (!SunshineVouch.matches(vouched, streamPaired.certFingerprint)) {
+            LimeLog.warning("StrmQt pairing: the stream paired with a Sunshine presenting "
+                    + streamPaired.certFingerprint + "; StrmQt vouches for " + vouched);
+            remoteFailed(RemoteState.SUNSHINE_NOT_STRMQT);
+            return;
+        }
+        halt();
+        listener.onDone(new Result(streamPaired.uuid, streamPaired.name, token, fingerprint, vouched));
     }
 }

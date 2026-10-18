@@ -21,13 +21,19 @@ import java.util.concurrent.Callable;
 /**
  * The one-code flow: a stand-in Sunshine for the stream half (paired,
  * a stale session then paired, wrong PIN, unreachable) and the stand-in Web
- * Remote for the remote half.
+ * Remote for the remote half, which vouches for StrmQt's Sunshine.
  */
 public class OneCodePairingTest {
     private static final String CODE = "4821";
     private static final String NAME = "Fire TV Stick";
     private static final String UUID = "SUNSHINE-STRMQT-UUID";
     private static final int SUNSHINE_PORT = 48989;
+    /** The certificate of StrmQt's Sunshine, which StrmQt vouches for. */
+    private static final String SUNSHINE_CERT =
+            "5f1e0c4b9a7d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f";
+    /** Another Sunshine's: a plain one, or the desktop's on the same machine. */
+    private static final String OTHER_CERT =
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     private static FakeStrmQt.Identity identity;
     private static FakeStrmQt.Identity otherIdentity;
@@ -54,6 +60,8 @@ public class OneCodePairingTest {
         final List<Long> attemptTimes = Collections.synchronizedList(new ArrayList<Long>());
         final List<String> addresses = Collections.synchronizedList(new ArrayList<String>());
         volatile boolean alreadyPaired;
+        /** The certificate this Sunshine presents, as Moonlight pins it. */
+        volatile String cert = SUNSHINE_CERT;
         private String entered;
         private int waiting;
         private boolean released;
@@ -88,12 +96,12 @@ public class OneCodePairingTest {
             attemptTimes.add(System.nanoTime());
             synchronized (this) {
                 if (alreadyPaired) {
-                    return new Outcome(Result.ALREADY_PAIRED, UUID, "cachyos-minipc", null);
+                    return new Outcome(Result.ALREADY_PAIRED, UUID, "cachyos-minipc", cert, null);
                 }
                 Result scripted = script.poll();
                 if (scripted != null) {
                     return scripted == Result.PAIRED || scripted == Result.ALREADY_PAIRED
-                            ? new Outcome(scripted, UUID, "cachyos-minipc", null)
+                            ? new Outcome(scripted, UUID, "cachyos-minipc", cert, null)
                             : Outcome.of(scripted, "scripted");
                 }
                 waiting++;
@@ -106,7 +114,7 @@ public class OneCodePairingTest {
                     }
                     String typed = entered;
                     entered = null;
-                    return typed.equals(pin) ? new Outcome(Result.PAIRED, UUID, "cachyos-minipc", null)
+                    return typed.equals(pin) ? new Outcome(Result.PAIRED, UUID, "cachyos-minipc", cert, null)
                             : Outcome.of(Result.WRONG_PIN, null);
                 } finally {
                     waiting--;
@@ -124,6 +132,7 @@ public class OneCodePairingTest {
     @Before
     public void start() throws Exception {
         server = new FakeStrmQt(identity, 0);
+        server.sunshineFingerprint = SUNSHINE_CERT;
         sunshine = new FakeSunshine();
     }
 
@@ -231,6 +240,8 @@ public class OneCodePairingTest {
         assertEquals(UUID, done.computerUuid);
         assertTrue("the token is one StrmQt keeps", server.tokens.contains(done.token));
         assertEquals(fingerprint(), done.fingerprint);
+        assertEquals("the Sunshine StrmQt vouched for", SUNSHINE_CERT, done.sunshineFingerprint);
+        assertEquals("the answer to the code named it", 0, server.hostRequests.get());
         assertEquals(OneCodePairing.StreamState.PAIRED, last(streamStates));
         assertEquals(OneCodePairing.RemoteState.PAIRED, last(remoteStates));
 
@@ -319,6 +330,9 @@ public class OneCodePairingTest {
         assertEquals(UUID, done.computerUuid);
         assertEquals(token, done.token);
         assertEquals("no code was asked for", 0, server.pairPosts.get());
+        // No code, so StrmQt was asked which Sunshine is its own.
+        assertTrue(server.hostRequests.get() > 0);
+        assertEquals(SUNSHINE_CERT, done.sunshineFingerprint);
     }
 
     @Test
@@ -400,6 +414,7 @@ public class OneCodePairingTest {
         pairing().start();
         awaitRemote(OneCodePairing.RemoteState.UNREACHABLE);
         server = new FakeStrmQt(identity, port);
+        server.sunshineFingerprint = SUNSHINE_CERT;
         awaitRemote(OneCodePairing.RemoteState.WAITING);
         typeIntoStrmQt(CODE);
         await("both halves", 5000, () -> done != null);
@@ -443,6 +458,80 @@ public class OneCodePairingTest {
         await("pairing to stop", 5000, () -> stopped != null);
         assertEquals(OneCodePairing.RemoteState.UNSUPPORTED, stopped);
         assertEquals(0, server.pairPosts.get());
+    }
+
+    // StrmQt vouching for its Sunshine
+
+    @Test
+    public void aSunshineStrmQtDoesNotVouchForIsRefused() throws Exception {
+        // The Sunshine port led to a plain Sunshine, or the desktop's own.
+        sunshine.cert = OTHER_CERT;
+        pairing().start();
+        awaitRemote(OneCodePairing.RemoteState.WAITING);
+        typeIntoStrmQt(CODE);
+        await("pairing to stop", 5000, () -> stopped != null);
+        assertEquals(OneCodePairing.RemoteState.SUNSHINE_NOT_STRMQT, stopped);
+        assertNull("not paired", done);
+    }
+
+    @Test
+    public void aStrmQtThatDoesNotVouchIsRefused() throws Exception {
+        server.sunshineFingerprint = null;
+        pairing().start();
+        awaitRemote(OneCodePairing.RemoteState.WAITING);
+        typeIntoStrmQt(CODE);
+        await("pairing to stop", 5000, () -> stopped != null);
+        assertEquals(OneCodePairing.RemoteState.SUNSHINE_UNVOUCHED, stopped);
+        assertTrue("StrmQt was asked as well", server.hostRequests.get() > 0);
+        assertNull(done);
+    }
+
+    @Test
+    public void aStrmQtFromBeforeVouchingIsRefused() throws Exception {
+        server.noVouching = true;
+        pairing().start();
+        awaitRemote(OneCodePairing.RemoteState.WAITING);
+        typeIntoStrmQt(CODE);
+        await("pairing to stop", 5000, () -> stopped != null);
+        assertEquals(OneCodePairing.RemoteState.SUNSHINE_UNVOUCHED, stopped);
+        assertNull(done);
+    }
+
+    @Test
+    public void aSunshineWithoutAKnownCertificateIsRefused() throws Exception {
+        sunshine.cert = null;
+        pairing().start();
+        awaitRemote(OneCodePairing.RemoteState.WAITING);
+        typeIntoStrmQt(CODE);
+        await("pairing to stop", 5000, () -> stopped != null);
+        assertEquals(OneCodePairing.RemoteState.SUNSHINE_NOT_STRMQT, stopped);
+        assertNull(done);
+    }
+
+    @Test
+    public void anAlreadyPairedSunshineStrmQtDoesNotVouchForIsRefused() throws Exception {
+        sunshine.alreadyPaired = true;
+        sunshine.cert = OTHER_CERT;
+        String token = server.pairDevice();
+        pairing(target(fingerprint(), token, fingerprint())).start();
+        await("pairing to stop", 5000, () -> stopped != null);
+        assertEquals(OneCodePairing.RemoteState.SUNSHINE_NOT_STRMQT, stopped);
+        assertEquals("no code was asked for", 0, server.pairPosts.get());
+        assertNull(done);
+    }
+
+    @Test
+    public void aHeldTokenStrmQtWillNotVouchWithPairsByCode() throws Exception {
+        sunshine.alreadyPaired = true;
+        server.hostRefusesTokens = true;
+        String token = server.pairDevice();
+        pairing(target(fingerprint(), token, fingerprint())).start();
+        awaitRemote(OneCodePairing.RemoteState.WAITING);
+        assertNull(stopped);
+        server.typeCode(CODE);
+        await("both halves", 5000, () -> done != null);
+        assertFalse("a new token, by code", token.equals(done.token));
+        assertEquals(SUNSHINE_CERT, done.sunshineFingerprint);
     }
 
     @Test

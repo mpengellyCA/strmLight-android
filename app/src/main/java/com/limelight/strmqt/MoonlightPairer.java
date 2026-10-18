@@ -14,6 +14,7 @@ import com.limelight.utils.ServerHelper;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.security.cert.X509Certificate;
 
 /**
  * Moonlight's own pairing, as PcView does it, against the StrmQt host's
@@ -47,7 +48,7 @@ public final class MoonlightPairer implements StreamPairer {
             return Outcome.of(Result.UNREACHABLE, e.getMessage());
         }
         if (computer.pairState == PairingManager.PairState.PAIRED) {
-            return new Outcome(Result.ALREADY_PAIRED, computer.uuid, computer.name, null);
+            return alreadyPaired(computer);
         }
 
         try {
@@ -56,7 +57,7 @@ public final class MoonlightPairer implements StreamPairer {
                     PlatformBinding.getCryptoProvider(context));
             String serverInfo = http.getServerInfo(true);
             if (http.getPairState(serverInfo) == PairingManager.PairState.PAIRED) {
-                return new Outcome(Result.ALREADY_PAIRED, computer.uuid, computer.name, null);
+                return alreadyPaired(computer);
             }
 
             PairingManager pm = http.getPairingManager();
@@ -65,7 +66,8 @@ public final class MoonlightPairer implements StreamPairer {
             switch (state) {
                 case PAIRED:
                     remember(computer, pm);
-                    return new Outcome(Result.PAIRED, computer.uuid, computer.name, null);
+                    return new Outcome(Result.PAIRED, computer.uuid, computer.name,
+                            SunshineVouch.fingerprint(pm.getPairedCert()), null);
                 case PIN_WRONG:
                     return Outcome.of(Result.WRONG_PIN, null);
                 case ALREADY_IN_PROGRESS:
@@ -90,6 +92,20 @@ public final class MoonlightPairer implements StreamPairer {
         } catch (IllegalArgumentException e) {
             return Outcome.of(Result.UNREACHABLE, e.getMessage());
         }
+    }
+
+    /**
+     * Paired before: the certificate is the one Moonlight pinned then, which
+     * addComputerBlocking copies from the stored computer.
+     */
+    private Outcome alreadyPaired(ComputerDetails computer) {
+        X509Certificate cert = computer.serverCert;
+        if (cert == null) {
+            ComputerDetails known = binder.getComputer(computer.uuid);
+            cert = known != null ? known.serverCert : null;
+        }
+        return new Outcome(Result.ALREADY_PAIRED, computer.uuid, computer.name,
+                SunshineVouch.fingerprint(cert), null);
     }
 
     /**

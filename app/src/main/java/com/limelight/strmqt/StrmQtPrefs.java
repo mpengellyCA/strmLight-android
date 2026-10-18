@@ -7,7 +7,8 @@ import android.preference.PreferenceManager;
 /**
  * The fork's settings. The switches the settings screen shows live in the
  * default preferences beside Moonlight's own; what pairing stores (address,
- * token, certificate pin) lives in a private file of its own.
+ * token, certificate pin, the Sunshine StrmQt vouched for) lives in a
+ * private file of its own.
  */
 public final class StrmQtPrefs {
     public static final String KEY_REMOTE_MODE = "strmqt_remote_mode";
@@ -38,6 +39,8 @@ public final class StrmQtPrefs {
     /** StrmQt asked for no pairing when this device was set up, so there is no token. */
     private static final String OPEN = "open";
     private static final String CERT = "cert_sha256";
+    /** The certificate StrmQt vouched for as its Sunshine's; nothing else is streamed from. */
+    private static final String SUNSHINE_CERT = "sunshine_cert_sha256";
     private static final String COMPUTER_UUID = "computer_uuid";
     private static final String COMPUTER_NAME = "computer_name";
     private static final String APP_NAME = "app_name";
@@ -181,6 +184,23 @@ public final class StrmQtPrefs {
             editor.remove(TOKEN);
         }
         editor.apply();
+    }
+
+    /**
+     * The certificate StrmQt vouches for as its Sunshine's, lowercase hex;
+     * null when none is stored (a device paired before StrmQt vouched).
+     */
+    public String sunshineFingerprint() {
+        return store.getString(SUNSHINE_CERT, null);
+    }
+
+    /** @param fingerprint null forgets it */
+    public void setSunshineFingerprint(String fingerprint) {
+        if (fingerprint != null) {
+            store.edit().putString(SUNSHINE_CERT, fingerprint).apply();
+        } else {
+            store.edit().remove(SUNSHINE_CERT).apply();
+        }
     }
 
     /** Forgets the token, so the device pairs again. The address and certificate stay. */
