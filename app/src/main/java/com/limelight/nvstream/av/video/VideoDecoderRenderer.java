@@ -12,6 +12,18 @@ public abstract class VideoDecoderRenderer {
     public abstract int submitDecodeUnit(byte[] decodeUnitData, int decodeUnitLength, int decodeUnitType,
                                          int frameNumber, int frameType, char frameHostProcessingLatency,
                                          long receiveTimeUs, long enqueueTimeUs);
+
+    /**
+     * The same, with the host's 90 kHz timestamp of the frame and when its
+     * first packet arrived (System.nanoTime), for a renderer that schedules
+     * it.
+     */
+    public int submitDecodeUnit(byte[] decodeUnitData, int decodeUnitLength, int decodeUnitType,
+                                int frameNumber, int frameType, char frameHostProcessingLatency,
+                                long receiveTimeUs, long enqueueTimeUs, int rtpTimestamp, long receiveTimeNs) {
+        return submitDecodeUnit(decodeUnitData, decodeUnitLength, decodeUnitType, frameNumber, frameType,
+                frameHostProcessingLatency, receiveTimeUs, enqueueTimeUs);
+    }
     
     public abstract void cleanup();
 

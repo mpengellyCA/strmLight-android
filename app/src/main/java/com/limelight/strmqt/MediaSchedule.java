@@ -1,24 +1,28 @@
 package com.limelight.strmqt;
 
 /**
- * When each audio sample of a stream is due, on the StrmQt host's clock, for
- * TVs playing together (docs/synchronized-playback.md), and how to get there.
+ * When each audio sample or video frame of a stream is due, on the StrmQt
+ * host's clock, for TVs playing together (docs/synchronized-playback.md), and
+ * how to get there. One for the audio, one for the video.
  *
- * Sunshine stamps audio with a count of milliseconds from 0, not a time, so
- * the host time of ts 0 (the base) is found from arrivals: host time of
- * arrival minus ts is the base plus that packet's delay, so its least over the
- * last {@link #SLICES} slices of {@link #SLICE_NS} is the base plus the
- * fastest delivery. Using a window rather than the least ever follows the
- * sound card's clock drifting against the host's. The most over the same
- * window is how late a packet can be, which a TV must allow for.
+ * Sunshine's timestamps start from an epoch of its own (audio counts
+ * milliseconds from 0; video's 90 kHz clock counts from when its capture
+ * started), so the host time of timestamp 0 (the base) is found from
+ * arrivals: host time of arrival minus timestamp is the base plus that
+ * packet's delay, so its least over the last {@link #SLICES} slices of
+ * {@link #SLICE_NS} is the base plus the fastest delivery. Using a window
+ * rather than the least ever follows the sound card's clock drifting against
+ * the host's. The most over the same window is how late one can be, which a
+ * TV must allow for.
  *
- * A sample ts ms into the stream is due at base + ts + D on the host's clock,
- * for the D the host gives every TV ({@link PlayTogether}).
+ * What is ts into the stream is due at base + ts + D on the host's clock, for
+ * the D the host gives every TV ({@link PlayTogether}). Audio and video are
+ * due by the same D, so they keep the lip sync they had on the host.
  */
-public final class AudioSchedule {
+public final class MediaSchedule {
     static final long SLICE_NS = 2_000_000_000L;
     static final int SLICES = 5;
-    /** Arrivals before the base is believed: a quarter second of 5 ms packets. */
+    /** Arrivals before the base is believed: a quarter second of 5 ms packets, a second of 60 fps. */
     static final int MIN_ARRIVALS = 50;
 
     /** Closer than this is on time: a track's timestamp is not steadier than that. */
@@ -31,16 +35,16 @@ public final class AudioSchedule {
     private final long[] most = new long[SLICES];
     private int arrivals;
 
-    public AudioSchedule() {
+    public MediaSchedule() {
         java.util.Arrays.fill(sliceId, Long.MIN_VALUE);
     }
 
     /**
-     * A packet of `tsMs` (the host's timestamp) arrived at `hostArrivalNs` on
-     * the host's clock, `localArrivalNs` on this one's.
+     * What the host stamped `tsNs` (its timestamp, in ns) arrived at
+     * `hostArrivalNs` on the host's clock, `localArrivalNs` on this one's.
      */
-    public synchronized void arrived(long tsMs, long hostArrivalNs, long localArrivalNs) {
-        long q = hostArrivalNs - tsMs * 1_000_000L;
+    public synchronized void arrived(long tsNs, long hostArrivalNs, long localArrivalNs) {
+        long q = hostArrivalNs - tsNs;
         long id = Math.floorDiv(localArrivalNs, SLICE_NS);
         int i = (int) Math.floorMod(id, (long) SLICES);
         if (sliceId[i] != id) {
@@ -85,9 +89,14 @@ public final class AudioSchedule {
         return late;
     }
 
-    /** The host time `frame` frames into the packet of `tsMs` is due, `delayMs` behind. */
+    /** The host time audio `frame` frames into the packet of `tsMs` is due, `delayMs` behind. */
     public static long dueNs(long baseNs, long tsMs, int frame, int sampleRate, int delayMs) {
         return baseNs + (tsMs + delayMs) * 1_000_000L + frame * 1_000_000_000L / sampleRate;
+    }
+
+    /** The ns of a video frame's 90 kHz RTP timestamp, `unwrapped` past its 32 bits. */
+    public static long videoNs(long unwrapped) {
+        return unwrapped * 1_000_000L / 90;
     }
 
     /**

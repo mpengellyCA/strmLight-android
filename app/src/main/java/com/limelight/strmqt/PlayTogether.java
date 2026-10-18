@@ -26,6 +26,7 @@ public final class PlayTogether {
     private final Thread thread;
     private volatile boolean stopped;
     private volatile double latencyMs = -1;
+    private volatile double videoLatencyMs = -1;
     private volatile int delayMs;
     private volatile int tvs;
     private volatile long errorNs;
@@ -79,6 +80,11 @@ public final class PlayTogether {
         latencyMs = latency;
     }
 
+    /** This TV's own video path, host to screen, as the video hold estimates it. */
+    public void setVideoLatencyMs(double latency) {
+        videoLatencyMs = latency;
+    }
+
     /** How far off its due time the audio plays, for the overlay; positive is late. */
     public void setErrorNs(long error) {
         errorNs = error;
@@ -112,10 +118,12 @@ public final class PlayTogether {
             } catch (InterruptedException e) {
                 return;
             }
+            // The slower of sound and picture: both are held by the same D.
             double latency = latencyMs;
             if (latency < 0) {
                 continue;
             }
+            latency = Math.max(latency, videoLatencyMs);
             StrmQtClient.SyncAnswer reply = client.reportSync(latency);
             if (reply.unknown) {
                 LimeLog.info("StrmQt together: this host does not know playing together");

@@ -13,7 +13,7 @@ import android.os.Build;
 import com.limelight.LimeLog;
 import com.limelight.nvstream.av.audio.AudioRenderer;
 import com.limelight.nvstream.jni.MoonBridge;
-import com.limelight.strmqt.AudioSchedule;
+import com.limelight.strmqt.MediaSchedule;
 import com.limelight.strmqt.ClockEstimate;
 import com.limelight.strmqt.HostClock;
 import com.limelight.strmqt.PlayTogether;
@@ -314,7 +314,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private final short[] silence;
         private final long aheadFrames;
         private final ArrayBlockingQueue<Packet> queue = new ArrayBlockingQueue<>(QUEUE);
-        private final AudioSchedule schedule = new AudioSchedule();
+        private final MediaSchedule schedule = new MediaSchedule();
         private final AudioTimestamp stamp = new AudioTimestamp();
         private final Thread thread;
         private volatile boolean stopped;
@@ -380,7 +380,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
             } else {
                 ClockEstimate.Result clock = hostClock.estimate();
                 if (clock != null) {
-                    schedule.arrived(tsMs, clock.at(arrivedNs), arrivedNs);
+                    schedule.arrived(tsMs * 1_000_000L, clock.at(arrivedNs), arrivedNs);
                 }
             }
             // The decoder fills one array for every packet; this one plays later.
@@ -443,13 +443,13 @@ public class AndroidAudioRenderer implements AudioRenderer {
                         continue;
                     }
 
-                    long due = clock.localAt(AudioSchedule.dueNs(base, packet.tsMs, frame, sampleRate, delayMs));
+                    long due = clock.localAt(MediaSchedule.dueNs(base, packet.tsMs, frame, sampleRate, delayMs));
                     long error = playAt - due;
                     int frames = packet.pcm.length / channels;
                     // Far off: at once, from this error. Close: a frame at
                     // most each packet, from the smoothed error, since the
                     // track's timestamp wobbles by more than a frame.
-                    int correction = AudioSchedule.correction(error, sampleRate);
+                    int correction = MediaSchedule.correction(error, sampleRate);
                     if (correction > 1 || correction < -1) {
                         jumps++;
                         smoothedErrorNs = 0;
@@ -472,7 +472,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
                     if (together != null) {
                         together.setErrorNs(Math.round(smoothedErrorNs));
                     }
-                    int nudge = AudioSchedule.correction(Math.round(smoothedErrorNs), sampleRate);
+                    int nudge = MediaSchedule.correction(Math.round(smoothedErrorNs), sampleRate);
                     long frameNs = 1_000_000_000L / sampleRate;
                     if (nudge > 0 && frame + 1 < frames) {
                         // A little late: one frame left out.

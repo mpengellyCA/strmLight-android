@@ -217,12 +217,18 @@ public class MoonBridge {
         }
     }
 
+    /**
+     * @param rtpTimestamp the host's 90 kHz timestamp of the frame
+     * @param receiveTimeNs when its first packet arrived, on System.nanoTime
+     */
     public static int bridgeDrSubmitDecodeUnit(byte[] decodeUnitData, int decodeUnitLength, int decodeUnitType,
                                                int frameNumber, int frameType, char frameHostProcessingLatency,
-                                               long receiveTimeUs, long enqueueTimeUs) {
+                                               long receiveTimeUs, long enqueueTimeUs,
+                                               int rtpTimestamp, long receiveTimeNs) {
         if (videoRenderer != null) {
             return videoRenderer.submitDecodeUnit(decodeUnitData, decodeUnitLength,
-                    decodeUnitType, frameNumber, frameType, frameHostProcessingLatency, receiveTimeUs, enqueueTimeUs);
+                    decodeUnitType, frameNumber, frameType, frameHostProcessingLatency, receiveTimeUs, enqueueTimeUs,
+                    rtpTimestamp, receiveTimeNs);
         }
         else {
             return DR_OK;
@@ -402,6 +408,8 @@ public class MoonBridge {
     public static native int getPendingAudioDuration();
 
     public static native int getPendingVideoFrames();
+
+    public static native void requestIdrFrame();
 
     public static native int testClientConnectivity(String testServerHostName, int referencePort, int testFlags);
 

@@ -111,6 +111,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     private VideoStats globalVideoStats;
 
     private long lastTimestampUs;
+
+    // Streaming from a StrmQt that keeps time: frames are held and shown when
+    // due, in step with other TVs (VideoHold). When to show each, by its PTS.
+    private VideoHold videoHold;
+    private final java.util.concurrent.ConcurrentHashMap<Long, Long> dueByPts = new java.util.concurrent.ConcurrentHashMap<>();
+    // Set while VideoHold submits a frame: when to show it.
+    private long submittingDueNs;
     private int lastFrameNumber;
     private long baseTimestampUs;
     private int refreshRate;
@@ -1029,6 +1036,18 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
                             numFramesOut++;
 
+                            // Held for playing together: shown when due, every frame.
+                            Long due = dueByPts.isEmpty() ? null : dueByPts.remove(presentationTimeUs);
+                            if (due != null) {
+                                videoDecoder.releaseOutputBuffer(outIndex, due);
+                                activeWindowVideoStats.totalFramesRendered++;
+                                VideoHold hold = videoHold;
+                                if (hold != null) {
+                                    hold.released(due, System.nanoTime());
+                                }
+                                continue;
+                            }
+
                             // Render the latest frame now if frame pacing isn't in balanced mode
                             if (prefs.framePacing != PreferenceConfiguration.FRAME_PACING_BALANCED) {
                                 // Get the last output buffer in the queue
@@ -1180,8 +1199,37 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
     @Override
     public void start() {
+        HostClock hostClock = HostClock.current();
+        if (hostClock != null) {
+            videoHold = new VideoHold(hostClock, this::submitHeld);
+            videoHold.start();
+        }
         startRendererThread();
         startChoreographerThread();
+    }
+
+    @Override
+    public int submitDecodeUnit(byte[] decodeUnitData, int decodeUnitLength, int decodeUnitType,
+                                int frameNumber, int frameType, char frameHostProcessingLatency,
+                                long receiveTimeUs, long enqueueTimeUs, int rtpTimestamp, long receiveTimeNs) {
+        VideoHold hold = videoHold;
+        if (hold == null) {
+            return submitDecodeUnit(decodeUnitData, decodeUnitLength, decodeUnitType, frameNumber, frameType,
+                    frameHostProcessingLatency, receiveTimeUs, enqueueTimeUs);
+        }
+        return hold.submit(decodeUnitData, decodeUnitLength, decodeUnitType, frameNumber, frameType,
+                frameHostProcessingLatency, receiveTimeUs, enqueueTimeUs, rtpTimestamp, receiveTimeNs);
+    }
+
+    /** VideoHold's: one frame to the decoder, to be shown at `dueNs` (0: as soon as it can). */
+    private int submitHeld(VideoHold.Unit unit, long dueNs) {
+        submittingDueNs = dueNs;
+        try {
+            return submitDecodeUnit(unit.data, unit.length, unit.type, unit.frameNumber, unit.frameType,
+                    unit.hostLatency, unit.receiveTimeUs, unit.enqueueTimeUs);
+        } finally {
+            submittingDueNs = 0;
+        }
     }
 
     // !!! May be called even if setup()/start() fails !!!
@@ -1219,6 +1267,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     public void stop() {
         // May be called already, but we'll call it now to be safe
         prepareForStop();
+
+        if (videoHold != null) {
+            videoHold.stop();
+        }
 
         // Wait for the Choreographer looper to shut down (if we have one)
         if (choreographerHandlerThread != null) {
@@ -1692,6 +1744,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             timestampUs = lastTimestampUs + 1;
         }
         lastTimestampUs = timestampUs;
+        if (submittingDueNs != 0) {
+            if (dueByPts.size() > 1000) {
+                // Frames the decoder never gave back (a flush).
+                dueByPts.clear();
+            }
+            dueByPts.put(timestampUs, submittingDueNs);
+        }
 
         numFramesIn++;
 
