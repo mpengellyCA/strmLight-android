@@ -108,7 +108,26 @@ without hardware timestamps, which Android does not give.
 - The clock's line in the performance overlay.
 
 Checked between Java and C++ on one machine, where the true offset is zero: within 10 µs,
-with a 0.05 ms round trip. Next: TVs report their figures to the host, and the host gives
+with a 0.05 ms round trip.
+
+**Measured on Wi-Fi, 2026-10-18.** Two Fire TV sticks (AFTKA002, AFTSS; Fire OS 7) ran the
+clock code for 5 minutes against `TimeService` on the host machine, and against each
+other:
+
+| | Round trip | Scatter about the fit | Skew to host |
+|---|---|---|---|
+| Stick A ↔ host | 1.2 ms | 0.03 ms | +8.7 ppm |
+| Stick B ↔ host | 1.3 ms | 0.04 ms | +0.7 ppm |
+| A ↔ B | 2.5 ms | 0.08–0.18 ms | — |
+
+- **The triangle.** A→B against A→host→B closes to within +0.17 ms (median; −0.04 to
+  +0.36 ms over the run).
+- **The mirror check.** A's view of B and B's view of A disagree by the same +0.17 ms. So
+  the residual is the TVs' own answering, not the host links. A TV reads t2 when its thread
+  wakes rather than from the kernel, and t3 before Java's send.
+- **Conclusion.** Each TV knows the host's clock to a few tenths of a millisecond, and two
+  TVs agree with each other to well under a millisecond. The clock will not be what limits
+  the echo. The audio path is. Next: TVs report their figures to the host, and the host gives
 each TV its peers to time.
 
 ### 2. Video: map the 90 kHz timeline to host time
