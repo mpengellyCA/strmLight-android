@@ -72,8 +72,13 @@ public class LaunchActivity extends Activity {
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private boolean bound;
     // Bumped whenever an attempt is abandoned, so its late callbacks are ignored.
-    private int attemptId;
+    // Volatile so a worker can stop early; callbacks still check it on the main thread.
+    private volatile int attemptId;
     private int wakeTries;
+    // This attempt has searched for StrmQt at another port or address; it does not again.
+    private boolean followTried;
+    // That search is running: offline reports wait for its answer.
+    private boolean following;
 
     private final Runnable retry = new Runnable() {
         @Override
@@ -249,7 +254,13 @@ public class LaunchActivity extends Activity {
     }
 
     private void connect() {
+        connect(false);
+    }
+
+    /** @param followed StrmQt was just followed to where it is now: no second search */
+    private void connect(boolean followed) {
         abandonAttempt();
+        followTried = followed;
         if (!resumed) {
             // onResume carries on from here.
             mode = Mode.CONNECTING;
@@ -286,6 +297,7 @@ public class LaunchActivity extends Activity {
     /** Stops whatever attempt is running; anything it still reports is ignored. */
     private void abandonAttempt() {
         attemptId++;
+        following = false;
         handler.removeCallbacksAndMessages(null);
         if (managerBinder != null) {
             managerBinder.stopPolling();
@@ -371,25 +383,21 @@ public class LaunchActivity extends Activity {
         }
 
         if (details.state == ComputerDetails.State.OFFLINE) {
-            if (details.macAddress != null && wakeTries-- > 0) {
-                // Best effort, off the main thread; the attempt's timeout bounds the wait.
-                new Thread("StrmQt wake") {
-                    @Override
-                    public void run() {
-                        try {
-                            WakeOnLanSender.sendWolPacket(details);
-                        } catch (IOException e) {
-                            LimeLog.warning("Wake-on-LAN failed: " + e);
-                        }
-                        binder.invalidateStateForComputer(details.uuid);
-                    }
-                }.start();
-                showProgress(getString(R.string.strmqt_status_waking, hostLabel()));
+            if (following) {
+                // The search decides what comes next.
                 return;
             }
-            attemptFailed(getString(R.string.strmqt_status_host_offline, hostLabel()));
+            if (!followTried) {
+                followTried = true;
+                followStrmQt(binder, details, attempt);
+                return;
+            }
+            hostOffline(binder, details);
             return;
         }
+
+        // Answering where it was paired; a search still running is not needed.
+        following = false;
 
         if (details.pairState != PairingManager.PairState.PAIRED) {
             // The stream half of pairing is gone (Sunshine forgot this device):
@@ -409,6 +417,108 @@ public class LaunchActivity extends Activity {
         } else {
             vouchDecided(decision, binder, details, attempt);
         }
+    }
+
+    /** Wakes the host while tries are left; then the attempt fails. */
+    private void hostOffline(final ComputerManagerService.ComputerManagerBinder binder,
+                             final ComputerDetails details) {
+        if (details.macAddress != null && wakeTries-- > 0) {
+            // Best effort, off the main thread; the attempt's timeout bounds the wait.
+            new Thread("StrmQt wake") {
+                @Override
+                public void run() {
+                    try {
+                        WakeOnLanSender.sendWolPacket(details);
+                    } catch (IOException e) {
+                        LimeLog.warning("Wake-on-LAN failed: " + e);
+                    }
+                    binder.invalidateStateForComputer(details.uuid);
+                }
+            }.start();
+            showProgress(getString(R.string.strmqt_status_waking, hostLabel()));
+            return;
+        }
+        attemptFailed(getString(R.string.strmqt_status_host_offline, hostLabel()));
+    }
+
+    /**
+     * The paired Sunshine does not answer where it was paired. StrmQt may have
+     * moved it to another base port (48989 before, 8335 now, or the next free
+     * one), or the machine may have a new address: searches once, and when the
+     * StrmQt announcing the pinned Web Remote certificate answers somewhere
+     * else, points Moonlight's computer there and tries again. A reply is only
+     * a hint: the stream still starts only after the vouch check.
+     */
+    private void followStrmQt(final ComputerManagerService.ComputerManagerBinder binder,
+                              final ComputerDetails details, final int attempt) {
+        following = true;
+        showProgress(getString(R.string.strmqt_status_finding, hostLabel()));
+        // Where Moonlight looks is what did not answer; the prefs only when it has no manual address.
+        final ComputerDetails.AddressTuple paired = details.manualAddress;
+        final String storedAddress = paired != null ? paired.address : prefs.remoteHost();
+        final int storedPort = paired != null ? paired.port : prefs.sunshinePort();
+        final String cert = prefs.certFingerprint();
+        final String uuid = details.uuid;
+        new Thread("StrmQt follow") {
+            @Override
+            public void run() {
+                StrmQtDiscovery.Host moved = null;
+                try {
+                    moved = HostMove.follow(storedAddress, storedPort, cert,
+                            StrmQtDiscovery.scan(LaunchActivity.this));
+                } catch (IOException e) {
+                    LimeLog.warning("StrmQt: cannot search for the host: " + e);
+                }
+                // Moonlight's computer is not touched for an attempt already abandoned.
+                final boolean followed = moved != null && attempt == attemptId
+                        && pointAt(binder, uuid, moved);
+                handler.post(() -> {
+                    if (attempt != attemptId || !following) {
+                        return;
+                    }
+                    following = false;
+                    if (followed) {
+                        connect(true);
+                    } else {
+                        hostOffline(binder, details);
+                    }
+                });
+            }
+        }.start();
+    }
+
+    /**
+     * Points Moonlight's stored computer at where StrmQt's Sunshine is now, as
+     * pairing added it, and stores the new place. Moonlight takes the address
+     * only from the Sunshine with the paired uuid, and keeps the certificate
+     * it pinned. Blocks; off the main thread.
+     *
+     * @return whether the paired Sunshine answers there
+     */
+    private boolean pointAt(ComputerManagerService.ComputerManagerBinder binder, String uuid,
+                            StrmQtDiscovery.Host moved) {
+        LimeLog.info("StrmQt moved its Sunshine to " + moved.address + ":" + moved.sunshinePort);
+        ComputerDetails computer = new ComputerDetails();
+        computer.uuid = uuid;
+        computer.manualAddress = new ComputerDetails.AddressTuple(moved.address, moved.sunshinePort);
+        try {
+            if (!binder.addComputerBlocking(computer)) {
+                LimeLog.warning("StrmQt: the paired Sunshine does not answer at "
+                        + moved.address + ":" + moved.sunshinePort);
+                return false;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (IllegalArgumentException e) {
+            // OkHttp refuses an address it cannot make a URL of.
+            LimeLog.warning("StrmQt: " + e);
+            return false;
+        }
+        // The token, the pinned certificate and the vouched Sunshine stay.
+        String name = prefs.hostName();
+        prefs.setHost(moved.address, name != null ? name : moved.name, moved.remotePort, moved.sunshinePort);
+        return true;
     }
 
     /** Opens pairing with one code, over the menu; Back from there lands in the menu. */

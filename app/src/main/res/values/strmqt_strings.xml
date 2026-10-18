@@ -52,6 +52,7 @@
     <string name="strmqt_status_not_set_up">Choose Set up StrmQt to find StrmQt and pair with it.</string>
     <string name="strmqt_status_connecting">Connecting to %1$s…</string>
     <string name="strmqt_status_waking">Waking %1$s…</string>
+    <string name="strmqt_status_finding">Looking for %1$s on the network…</string>
     <string name="strmqt_status_host_offline">%1$s is not answering.</string>
     <string name="strmqt_status_host_forgotten">The chosen host is no longer in the host list. Choose it again under Set up StrmQt.</string>
     <string name="strmqt_status_not_paired">This device is not paired with %1$s. Choose Set up StrmQt to pair again.</string>

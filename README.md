@@ -25,7 +25,7 @@ You need StrmQt 0.9.0 or newer on the computer, with its streaming host set up o
 
 From then on, opening StrmLight goes straight to StrmQt. Hold **Back** for two seconds while streaming for StrmLight's menu: Return to StrmQt, Disconnect, Settings.
 
-**Advanced setup**, on every setup screen, has what the simple path hides: entering the host by hand (address, Web Remote port 8338, Sunshine port), the certificate fingerprint, and the stream settings.
+**Advanced setup**, on every setup screen, has what the simple path hides: entering the host by hand (address, Web Remote port 8338, Sunshine port, 8335 by default), the certificate fingerprint, and the stream settings.
 
 ## What it does
 
@@ -34,6 +34,7 @@ From then on, opening StrmLight goes straight to StrmQt. Hold **Back** for two s
 - **Streams only StrmQt's own Sunshine.** StrmQt vouches for its Sunshine's certificate over the pinned Web Remote, and StrmLight streams only from the Sunshine its StrmQt vouches for: a plain Sunshine, or the desktop's own on the same machine, is refused. This needs a StrmQt newer than 0.9.0; an older one is refused with a message to update it.
 - **The remote goes straight to StrmQt** through StrmQt's Web Remote, pinned to its certificate, rather than as key presses through the stream.
 - **Connects on launch and reconnects** by itself after a dropped stream.
+- **Follows StrmQt to a new port.** When StrmQt's Sunshine stops answering where it was paired (StrmQt moved it from 48989 to 8335, picked the next free base port, or the computer has a new address), StrmLight searches the network once, follows the StrmQt that announces the certificate it paired with, and streams from there only after the usual check of StrmQt's Sunshine.
 - **Looks like StrmQt**: the same warm black, amber accent and type, with focus you can see from the couch.
 
 The details, including the pairing protocol and what has and has not been tested, are in [docs/strmqt-fork.md](docs/strmqt-fork.md).

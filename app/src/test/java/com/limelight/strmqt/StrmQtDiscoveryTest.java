@@ -203,6 +203,6 @@ public class StrmQtDiscoveryTest {
         assertEquals(3, StrmQtDiscovery.SENDS);
         assertEquals(500, StrmQtDiscovery.SEND_INTERVAL_MS);
         assertEquals(2000, StrmQtDiscovery.COLLECT_MS);
-        assertEquals(48989, StrmQtDiscovery.DEFAULT_SUNSHINE_PORT);
+        assertEquals(8335, StrmQtDiscovery.DEFAULT_SUNSHINE_PORT);
     }
 }

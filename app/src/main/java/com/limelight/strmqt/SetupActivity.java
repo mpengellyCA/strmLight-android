@@ -669,9 +669,9 @@ public class SetupActivity extends Activity {
         switch (preview) {
             case "several":
                 return new ArrayList<>(Arrays.asList(
-                        new StrmQtDiscovery.Host("192.168.2.116", "cachyos-minipc", 8338, 48989, null),
-                        new StrmQtDiscovery.Host("192.168.2.40", "living-room", 8338, 48989, null),
-                        new StrmQtDiscovery.Host("192.168.2.41", "living-room", 8338, 48989, null)));
+                        new StrmQtDiscovery.Host("192.168.2.116", "cachyos-minipc", 8338, 8335, null),
+                        new StrmQtDiscovery.Host("192.168.2.40", "living-room", 8338, 8335, null),
+                        new StrmQtDiscovery.Host("192.168.2.41", "living-room", 8338, 8335, null)));
             case "none":
                 return new ArrayList<>();
             case "nostream":
@@ -679,7 +679,7 @@ public class SetupActivity extends Activity {
                         new StrmQtDiscovery.Host("192.168.2.116", "cachyos-minipc", 8338, 0, null)));
             default:
                 return new ArrayList<>(Arrays.asList(
-                        new StrmQtDiscovery.Host("192.168.2.116", "cachyos-minipc", 8338, 48989, null)));
+                        new StrmQtDiscovery.Host("192.168.2.116", "cachyos-minipc", 8338, 8335, null)));
         }
     }
 

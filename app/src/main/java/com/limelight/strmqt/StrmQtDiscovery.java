@@ -38,7 +38,7 @@ public final class StrmQtDiscovery {
     public static final int PORT = 8338;
     public static final String PROBE = "STRMQT-DISCOVER 1";
     public static final int DEFAULT_REMOTE_PORT = 8338;
-    public static final int DEFAULT_SUNSHINE_PORT = 48989;
+    public static final int DEFAULT_SUNSHINE_PORT = 8335;
 
     static final int SENDS = 3;
     static final long SEND_INTERVAL_MS = 500;

@@ -61,7 +61,7 @@ the reason, **Try again** and **Advanced setup**.
 **Advanced setup**, a quiet button on every one of these screens, opens what
 the simple screens leave out: every host discovery found, with addresses, entering a
 host by hand (its address, the Web Remote port 8338 and the Sunshine port,
-48989 or the "port" line of StrmQt's `sunshine.conf`), **Pair** and **Stop
+8335 or the "port" line of StrmQt's `sunshine.conf`), **Pair** and **Stop
 pairing**, the two halves' states in full, the Web Remote certificate's
 SHA-256 to compare with the one StrmQt shows, and Settings. Back, or **Simple setup**, returns to the simple screens.
 
@@ -109,7 +109,7 @@ discovery protocol of its own instead.
   (some Wi-Fi drivers drop broadcasts without one); the manifest now
   declares `CHANGE_WIFI_MULTICAST_STATE` on every API level for that.
 - A host answers by unicast with a JSON object:
-  `{"service":"strmqt","version":1,"name":"…","remotePort":8338,"sunshinePort":48989,"fingerprint":"AA:BB:…"}`.
+  `{"service":"strmqt","version":1,"name":"…","remotePort":8338,"sunshinePort":8335,"fingerprint":"AA:BB:…"}`.
   The host's address is the reply's source address; replies are
   deduplicated by it. Unknown fields are ignored. A missing or unusable
   `remotePort` means 8338; a missing `sunshinePort` means the host cannot
@@ -124,6 +124,10 @@ discovery protocol of its own instead.
   Remote on another port, that port is stored instead. With **Pair again**,
   or when the app opens pairing by itself, the screen waits for the first
   search before it starts, so the corrected port is the one paired with.
+- StrmQt's Sunshine has base port 8335 (StrmQt's ports are 8330 to 8356;
+  builds before used 48989). When 8335's ports are busy StrmQt steps up by
+  100 (8435, 8535 …) and announces the port it took. The launcher follows a
+  move; see Connect on launch, reconnect.
 
 ### Pairing, in detail
 
@@ -315,6 +319,22 @@ on launch on, it finds the host through Moonlight's `ComputerManagerService`
 (sending Wake-on-LAN if it is offline), looks up the app named `StrmQt`
 (or the only app there is) and starts Moonlight's `Game`.
 
+**Following a moved Sunshine.** When the paired Sunshine does not answer at
+the address and port Moonlight has for it, the launcher searches the network
+once per attempt (the discovery above, about 2 s) before it sends
+Wake-on-LAN or counts the attempt as failed. A reply announcing the Web
+Remote certificate pinned at pairing is the paired StrmQt; when it names
+another Sunshine port or comes from another address (a new port at the same
+address is preferred), StrmLight points Moonlight's computer there (the same
+uuid, with the new address as its manual address, as pairing added it;
+Moonlight takes it only from the Sunshine with that uuid and keeps the
+certificate it pinned), stores the new address and ports beside the token
+and both certificates, and tries again. A reply from where the host already
+was, from another StrmQt, or without a fingerprint changes nothing; then the
+launcher wakes the host or the attempt fails, as before. Replies are not
+authenticated, which is why the move is only where to look: the stream
+starts only after the check below.
+
 Before it streams, the paired Sunshine's pinned certificate has to be the
 one StrmQt vouched for (`SunshineVouch`). A device paired before StrmQt
 vouched has none stored: it asks `GET /api/strmlight/host` once, over the
@@ -409,6 +429,7 @@ Read from StrmQt at `1d5cebf`:
 | Web Remote client: pinning; pairing by code (waiting, typed in, wrong code, 429 wait, pairing off, a held token still good or removed, older StrmQt, the device-name header); staying paired across a restart; a removed device not looping on `401`; recovery; dropping stale presses | Unit tests, against a stand-in server written from StrmQt's source |
 | Discovery: reading replies (complete, unknown fields, missing or bad ports, bad fingerprints, garbage), deduplication, the probe and its timing over loopback | Unit tests, against a stand-in host on loopback (never port 8338) |
 | StrmQt vouching for its Sunshine: the vouched one paired, another refused, none (absent, or a StrmQt from before) refused, an already-paired Sunshine checked, a held token StrmQt will not vouch with pairing by code; asking `/api/strmlight/host` (vouched, unpaired, none, pairing off, unreachable, another certificate); the launcher's decisions | Unit tests, against the stand-in Web Remote and Sunshine (`SunshineVouchTest`); not yet against StrmQt or on a device |
+| Following a moved Sunshine: which reply is followed (the same certificate at a new port or address, the matching one among several, a new port preferred over a new address), and which are not (nothing moved, another StrmQt, no fingerprint, no Sunshine, no pinned certificate) | Unit tests (`HostMoveTest`); the launcher's search and Moonlight's computer pointed at the new port not yet run against StrmQt or on a device |
 | One-code pairing: both halves from one entry; a stale Sunshine session (`409`) retried until it clears; a wrong PIN; Sunshine unreachable or refusing; halves already paired; a token held for another certificate; pausing (including a Moonlight request finishing while paused); the announced certificate checked; a new code; lockout; an older StrmQt; stopping | Unit tests, with a stand-in Sunshine behind the stream-pairing interface and the stand-in Web Remote |
 | First-run decisions: what opening the app does, which screen follows a search (one, several, none, hosts that cannot stream, a host found late, Pair again with the stored host, after the user stopped pairing), the chooser's order and when it shows addresses, the code screen's ticks and its one line of trouble | Unit tests (`FirstRunTest`) |
 | Every simple setup screen, Advanced setup and back, live discovery finding StrmQt, the launch straight into the stream, the menu over a running stream, upstream's Settings in the palette | On a Fire TV (API 28), through the debug preview, which stores nothing; the TV kept its pairing |
