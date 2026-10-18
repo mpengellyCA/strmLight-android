@@ -614,7 +614,9 @@ public final class StrmQtClient {
                 return new SyncAnswer(true, null);
             }
             return new SyncAnswer(false, response.code() == 200 ? body : null);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            // An IOException, or OkHttp's InterruptedException, unchecked to
+            // Java, when PlayTogether stops in the middle of a report.
             return new SyncAnswer(false, null);
         }
     }
