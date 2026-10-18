@@ -18,6 +18,8 @@ import java.util.Map;
  */
 public final class PlayTogether {
     static final long REPORT_MS = 1000;
+    /** How often it reports until it has a picture, so the host draws its screen again soon. */
+    static final long NO_PICTURE_REPORT_MS = 250;
     static final long KEEP_MS = 5000;
 
     private static volatile PlayTogether current;
@@ -31,6 +33,7 @@ public final class PlayTogether {
     private volatile int tvs;
     private volatile long errorNs;
     private volatile boolean held;
+    private volatile boolean picture;
 
     private PlayTogether(StrmQtClient client) {
         this.client = client;
@@ -101,6 +104,11 @@ public final class PlayTogether {
         return audio >= 0 && video >= 0 && delay >= Math.max(audio, video);
     }
 
+    /** This TV has decoded its first picture: the host need not draw its screen again for it. */
+    public void setPicture() {
+        picture = true;
+    }
+
     /** Whether the host has answered yet, so that a delay of 0 is its. */
     public boolean answered() {
         return tvs > 0;
@@ -143,7 +151,7 @@ public final class PlayTogether {
         long answeredAt = System.nanoTime();
         while (!stopped) {
             try {
-                Thread.sleep(REPORT_MS);
+                Thread.sleep(picture ? REPORT_MS : NO_PICTURE_REPORT_MS);
             } catch (InterruptedException e) {
                 return;
             }
@@ -154,7 +162,7 @@ public final class PlayTogether {
             if (latency >= 0) {
                 latency = Math.max(latency, videoLatencyMs);
             }
-            StrmQtClient.SyncAnswer reply = client.reportSync(latency);
+            StrmQtClient.SyncAnswer reply = client.reportSync(latency, picture);
             if (reply.unknown) {
                 LimeLog.info("StrmQt together: this host does not know playing together");
                 delayMs = 0;

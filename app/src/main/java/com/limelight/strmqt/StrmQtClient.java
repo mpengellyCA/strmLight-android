@@ -600,9 +600,13 @@ public final class StrmQtClient {
      * Never throws.
      *
      * @param latencyMs negative while it is not measured yet
+     * @param picture    whether this TV has decoded a picture yet; until it
+     *                   has, StrmQt draws its screen again for it, since its
+     *                   KWin sends Sunshine a frame only when the screen changes
      */
-    public SyncAnswer reportSync(double latencyMs) {
-        String report = latencyMs >= 0 ? String.format(java.util.Locale.ROOT, "{\"latencyMs\":%.1f}", latencyMs) : "{}";
+    public SyncAnswer reportSync(double latencyMs, boolean picture) {
+        String report = "{\"picture\":" + picture
+                + (latencyMs >= 0 ? String.format(java.util.Locale.ROOT, ",\"latencyMs\":%.1f", latencyMs) : "") + "}";
         Request.Builder request = new Request.Builder().url(baseUrl + "/api/strmlight/sync")
                 .post(RequestBody.create(report, JSON));
         if (token != null) {

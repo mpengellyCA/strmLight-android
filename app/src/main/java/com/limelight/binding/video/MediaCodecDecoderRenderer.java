@@ -135,6 +135,16 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     private int numFramesIn;
     private int numFramesOut;
 
+    /** A picture decoded; the first tells the host this TV has one (PlayTogether.setPicture). */
+    private void noteFrameOut() {
+        if (numFramesOut++ == 0) {
+            PlayTogether together = PlayTogether.current();
+            if (together != null) {
+                together.setPicture();
+            }
+        }
+    }
+
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
         if (decoder == null) {
@@ -1034,7 +1044,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                             long presentationTimeUs = info.presentationTimeUs;
                             int lastIndex = outIndex;
 
-                            numFramesOut++;
+                            noteFrameOut();
 
                             // Held for playing together: shown when due, every frame.
                             Long due = dueByPts.isEmpty() ? null : dueByPts.remove(presentationTimeUs);
@@ -1054,7 +1064,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                                 while ((outIndex = videoDecoder.dequeueOutputBuffer(info, 0)) >= 0) {
                                     videoDecoder.releaseOutputBuffer(lastIndex, false);
 
-                                    numFramesOut++;
+                                    noteFrameOut();
 
                                     lastIndex = outIndex;
                                     presentationTimeUs = info.presentationTimeUs;
