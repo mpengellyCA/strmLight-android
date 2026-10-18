@@ -269,6 +269,24 @@ Specifically:
 - how many decoded buffers a Fire TV codec lets us hold;
 - how well the clock sync does over Wi-Fi.
 
+**Audio, measured 2026-10-18.** Phases 1–3 for audio, on a Fire TV set (AFTKA002) and a
+Fire TV Stick (AFTSS) streaming one StrmQt host over Wi-Fi. Walking between the two, the
+sound could not be told apart: no echo. By the TVs' own figures each plays within ±1.5 ms
+of the host's schedule, with a few one-frame corrections a second and no jumps once
+settled.
+- **Delay.** It settles at ~415 ms. The stick's sound is heard ~350 ms after it is
+  written, and the other TV waits for it; the Fire TV set's own path is ~190 ms.
+- **What it took.**
+  - `getTimestamp` on the stick moves a chunk at a time (raw error ±17 ms), so frame 0's
+    time is smoothed.
+  - A track takes far more than it is asked for, so at most 60 ms is written ahead.
+  - Every change of *D* is heard, so the host moves it only when it must.
+- **Still open.**
+  - Video is not held yet, so audio trails the picture by about *D* while TVs play
+    together.
+  - The first 20–40 s overshoot *D* before it settles.
+  - Each TV's latency after HDMI is not measured; here it did not matter.
+
 ## Plan
 
 Audio first, since it is what is heard. Today's ~50 ms is invisible in the picture.
