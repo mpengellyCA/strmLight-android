@@ -205,8 +205,17 @@ When it is on, nobody waits for a fixed buffer: **every TV lines up on the slowe
 - **Lip sync.** Each TV delays its video by the same amount as its audio, so lip sync on
   each TV is unchanged. The video timeline (section 2) does this exactly; a plain hold of
   the same number of ms would also do.
-- **Changes.** When *D* changes, or a TV joins or leaves, the others hold or skip once to
-  the new target.
+- **Changes.** When *D* changes, every TV holds or skips once to the new target, and that
+  is heard. So while the host plays, *D* only goes up (when a TV comes within 5 ms of it),
+  and comes down between things played. A TV alone is held by its own latency, so a faster
+  one joins without moving it, and the host remembers a TV's latency for half an hour after
+  it stops, so when it comes back the others are already held for it.
+- **Joining.** A TV that joins is muted and shows "Syncing with other devices…" until it is
+  in step with a *D* that counts its own latency; the others hear nothing. Only a TV slower
+  than every TV the host remembers moves *D*, once. A TV is held only while it joins: a
+  later change of *D* is a jump, not another wait. Its latency is measured the same way
+  before and after it is scheduled (what the track has played but not yet heard, plus what
+  scheduling keeps written ahead of it), so its first reports do not overshoot.
 - **Fire TV.** Audio paths of 300–500 ms have been reported on some models and firmware
   (moonlight-android issues #1238, #1423). A TV like that becomes the slowest, and the
   others wait for it.

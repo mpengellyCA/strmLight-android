@@ -297,6 +297,8 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private static final int LEADS_BEFORE_REPORT = 5;
         // Scheduled this long with no jump, a TV is in step.
         private static final long IN_STEP_NS = 1_000_000_000L;
+        // A TV that joins is held no longer than this, in step or not.
+        private static final long HELD_AT_MOST_NS = 15_000_000_000L;
 
         private final class Packet {
             final short[] pcm;
@@ -343,9 +345,15 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private long errorMaxNs = Long.MIN_VALUE;
         private double reportedMs = -1;
         private double smoothedErrorNs;
-        // In step: scheduled for a while with no jump; until then, muted.
+        // In step: scheduled for a while with no jump.
         private long scheduledSince;
         private long lastJumpAt;
+        // Held only while joining: once this TV has played in step with a
+        // delay that counts it, or played alone, a change of the delay is a
+        // jump, not another wait.
+        private boolean settled;
+        private long heardSince;
+        private long heldSince;
         private boolean muted;
         private long statusAt;
         // Counted on the decoder's thread, read on this one for the status line.
@@ -420,7 +428,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
                     long now = System.nanoTime();
                     Long playAt = playTimeOfNextWrite(now);
                     if (playAt != null) {
-                        noteLead(playAt - now, now);
+                        if (heardSince == 0) {
+                            heardSince = now;
+                        }
+                        noteLead(now);
                     }
                     ClockEstimate.Result clock = hostClock.estimate();
                     Long base = schedule.baseNs(now);
@@ -508,8 +519,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
         /**
          * Whether this TV is in step yet: scheduled for {@link #IN_STEP_NS}
-         * with no jump. Until then, with a delay to keep, it is held: muted
-         * here, and covered by Game.
+         * with no jump. A TV that joins TVs playing together is held, muted
+         * here and covered by Game, until it is in step with a delay that
+         * counts its own latency; after that it is not held again this stream.
          */
         private void noteStep(boolean scheduled, int delayMs, long now) {
             if (!scheduled) {
@@ -519,10 +531,22 @@ public class AndroidAudioRenderer implements AudioRenderer {
             }
             boolean inStep = scheduled && now - scheduledSince > IN_STEP_NS && now - lastJumpAt > IN_STEP_NS;
             PlayTogether together = PlayTogether.current();
-            if (together != null) {
-                together.setInStep(inStep);
+            if (!settled) {
+                if (delayMs > 0) {
+                    if (heldSince == 0) {
+                        heldSince = now;
+                    }
+                    settled = inStep && reportedMs >= 0 && delayMs >= reportedMs
+                            || now - heldSince > HELD_AT_MOST_NS;
+                } else {
+                    settled = together != null && together.answered()
+                            && heardSince != 0 && now - heardSince > IN_STEP_NS;
+                }
             }
-            boolean hold = delayMs > 0 && !inStep;
+            boolean hold = delayMs > 0 && !settled;
+            if (together != null) {
+                together.setHeld(hold);
+            }
             if (hold != muted) {
                 muted = hold;
                 track.setVolume(hold ? 0f : 1f);
@@ -573,11 +597,16 @@ public class AndroidAudioRenderer implements AudioRenderer {
         }
 
         /**
-         * How far ahead of now what is written is heard, the most over each
-         * second; with how late packets arrive, it is this TV's latency,
-         * reported to the host.
+         * How far ahead of now what is written is heard when scheduled, the
+         * most over each second; with how late packets arrive, it is this
+         * TV's latency, reported to the host. It is what the track has played
+         * but not yet heard, plus what scheduling keeps written ahead of
+         * that, so it is the same before this TV is scheduled, when the
+         * track holds more, as after: the delay does not move once it is.
          */
-        private void noteLead(long lead, long now) {
+        private void noteLead(long now) {
+            long head = track.getPlaybackHeadPosition() & 0xFFFFFFFFL;
+            long lead = Math.round(frameZeroNs + (head + aheadFrames + silence.length / channels) * 1e9 / sampleRate) - now;
             leadMostNs = Math.max(leadMostNs, lead);
             if (now - leadSince < 1_000_000_000L) {
                 return;

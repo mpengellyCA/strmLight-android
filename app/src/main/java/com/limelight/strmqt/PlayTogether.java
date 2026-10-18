@@ -30,7 +30,7 @@ public final class PlayTogether {
     private volatile int delayMs;
     private volatile int tvs;
     private volatile long errorNs;
-    private volatile boolean inStep;
+    private volatile boolean held;
 
     private PlayTogether(StrmQtClient client) {
         this.client = client;
@@ -91,18 +91,22 @@ public final class PlayTogether {
         errorNs = error;
     }
 
-    /** Whether this TV's sound is playing in step with the host's schedule; the audio renderer's. */
-    public void setInStep(boolean step) {
-        inStep = step;
+    /** Whether the host has answered yet, so that a delay of 0 is its. */
+    public boolean answered() {
+        return tvs > 0;
+    }
+
+    /** Whether this TV is held while it joins; the audio renderer's. */
+    public void setHeld(boolean hold) {
+        held = hold;
     }
 
     /**
-     * Whether this TV should be held, muted and covered: the host asks TVs
-     * to play together and this one is not in step yet (it has just joined,
-     * or the delay just changed).
+     * Whether this TV should be held, muted and covered: it has just joined
+     * TVs playing together and is not in step with them yet.
      */
     public boolean holding() {
-        return delayMs > 0 && !inStep;
+        return held;
     }
 
     /** One line for the performance overlay. */
