@@ -30,6 +30,7 @@ public final class PlayTogether {
     private volatile int delayMs;
     private volatile int tvs;
     private volatile long errorNs;
+    private volatile boolean inStep;
 
     private PlayTogether(StrmQtClient client) {
         this.client = client;
@@ -90,6 +91,20 @@ public final class PlayTogether {
         errorNs = error;
     }
 
+    /** Whether this TV's sound is playing in step with the host's schedule; the audio renderer's. */
+    public void setInStep(boolean step) {
+        inStep = step;
+    }
+
+    /**
+     * Whether this TV should be held, muted and covered: the host asks TVs
+     * to play together and this one is not in step yet (it has just joined,
+     * or the delay just changed).
+     */
+    public boolean holding() {
+        return delayMs > 0 && !inStep;
+    }
+
     /** One line for the performance overlay. */
     public String describe() {
         if (delayMs <= 0) {
@@ -119,11 +134,12 @@ public final class PlayTogether {
                 return;
             }
             // The slower of sound and picture: both are held by the same D.
+            // Until it is measured, the report says only that this TV is
+            // streaming, so it is told D at once and can be held.
             double latency = latencyMs;
-            if (latency < 0) {
-                continue;
+            if (latency >= 0) {
+                latency = Math.max(latency, videoLatencyMs);
             }
-            latency = Math.max(latency, videoLatencyMs);
             StrmQtClient.SyncAnswer reply = client.reportSync(latency);
             if (reply.unknown) {
                 LimeLog.info("StrmQt together: this host does not know playing together");

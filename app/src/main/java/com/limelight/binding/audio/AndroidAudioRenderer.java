@@ -295,6 +295,8 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private static final double SMOOTHING = 0.05;
         // Seconds of measurement before this TV's latency is reported.
         private static final int LEADS_BEFORE_REPORT = 5;
+        // Scheduled this long with no jump, a TV is in step.
+        private static final long IN_STEP_NS = 1_000_000_000L;
 
         private final class Packet {
             final short[] pcm;
@@ -341,6 +343,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
         private long errorMaxNs = Long.MIN_VALUE;
         private double reportedMs = -1;
         private double smoothedErrorNs;
+        // In step: scheduled for a while with no jump; until then, muted.
+        private long scheduledSince;
+        private long lastJumpAt;
+        private boolean muted;
         private long statusAt;
         // Counted on the decoder's thread, read on this one for the status line.
         private volatile int arrivals;
@@ -397,7 +403,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
             try {
                 while (!stopped) {
                     int delayMs = PlayTogether.delayMs();
-                    if (delayMs > 0 && written - (track.getPlaybackHeadPosition() & 0xFFFFFFFFL) >= aheadFrames) {
+                    // A track starts only once its buffer is full, which may be
+                    // more than AHEAD_MS: until it plays, it is filled.
+                    long head = track.getPlaybackHeadPosition() & 0xFFFFFFFFL;
+                    if (delayMs > 0 && head > 0 && written - head >= aheadFrames) {
                         Thread.sleep(2);
                         continue;
                     }
@@ -428,7 +437,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
                         errorMinNs = Long.MAX_VALUE;
                         errorMaxNs = Long.MIN_VALUE;
                     }
-                    if (delayMs <= 0 || playAt == null || clock == null || base == null) {
+                    boolean scheduled = !(delayMs <= 0 || playAt == null || clock == null || base == null);
+                    noteStep(scheduled, delayMs, now);
+                    if (!scheduled) {
                         if (packet != null) {
                             write(packet.pcm, frame, packet.pcm.length / channels - frame);
                             packet = null;
@@ -452,6 +463,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
                     int correction = MediaSchedule.correction(error, sampleRate);
                     if (correction > 1 || correction < -1) {
                         jumps++;
+                        lastJumpAt = now;
                         smoothedErrorNs = 0;
                         if (correction > 0) {
                             // Late: skip what would be heard late.
@@ -491,6 +503,29 @@ public class AndroidAudioRenderer implements AudioRenderer {
                 }
             } catch (InterruptedException e) {
                 // Stopped.
+            }
+        }
+
+        /**
+         * Whether this TV is in step yet: scheduled for {@link #IN_STEP_NS}
+         * with no jump. Until then, with a delay to keep, it is held: muted
+         * here, and covered by Game.
+         */
+        private void noteStep(boolean scheduled, int delayMs, long now) {
+            if (!scheduled) {
+                scheduledSince = 0;
+            } else if (scheduledSince == 0) {
+                scheduledSince = now;
+            }
+            boolean inStep = scheduled && now - scheduledSince > IN_STEP_NS && now - lastJumpAt > IN_STEP_NS;
+            PlayTogether together = PlayTogether.current();
+            if (together != null) {
+                together.setInStep(inStep);
+            }
+            boolean hold = delayMs > 0 && !inStep;
+            if (hold != muted) {
+                muted = hold;
+                track.setVolume(hold ? 0f : 1f);
             }
         }
 

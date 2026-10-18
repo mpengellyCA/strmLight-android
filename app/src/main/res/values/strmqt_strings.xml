@@ -113,6 +113,8 @@
     <string name="strmqt_setup_paired_open">Paired: the stream. StrmQt asks for no remote pairing. Starting the stream…\nWeb Remote certificate SHA-256:\n%1$s</string>
 
     <!-- The simple setup: what opening the app shows when nothing is set up -->
+    <string name="strmqt_together_syncing_title">Syncing with other devices…</string>
+    <string name="strmqt_together_syncing_body">So every TV plays as one, without an echo.</string>
     <string name="strmqt_first_searching_title">Looking for StrmQt…</string>
     <string name="strmqt_first_searching_body">Searching this network for StrmQt\'s streaming host.</string>
     <string name="strmqt_first_code_host">Pairing with %1$s</string>

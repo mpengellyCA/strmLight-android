@@ -598,10 +598,13 @@ public final class StrmQtClient {
      * Tells StrmQt this TV's own latency while it streams (POST
      * /api/strmlight/sync, see {@link PlayTogether}), on the calling thread.
      * Never throws.
+     *
+     * @param latencyMs negative while it is not measured yet
      */
     public SyncAnswer reportSync(double latencyMs) {
+        String report = latencyMs >= 0 ? String.format(java.util.Locale.ROOT, "{\"latencyMs\":%.1f}", latencyMs) : "{}";
         Request.Builder request = new Request.Builder().url(baseUrl + "/api/strmlight/sync")
-                .post(RequestBody.create(String.format(java.util.Locale.ROOT, "{\"latencyMs\":%.1f}", latencyMs), JSON));
+                .post(RequestBody.create(report, JSON));
         if (token != null) {
             request.header("Authorization", "Bearer " + token);
         }

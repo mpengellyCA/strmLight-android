@@ -158,6 +158,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private TextView notificationOverlayView;
     private int requestedNotificationOverlayVisibility = View.GONE;
     private TextView performanceOverlayView;
+    private View syncingOverlayView;
+    private final Runnable syncingCheck = new Runnable() {
+        @Override
+        public void run() {
+            PlayTogether together = PlayTogether.current();
+            int visibility = together != null && together.holding() ? View.VISIBLE : View.GONE;
+            if (syncingOverlayView.getVisibility() != visibility) {
+                syncingOverlayView.setVisibility(visibility);
+            }
+            syncingOverlayView.postDelayed(this, 250);
+        }
+    };
 
     private MediaCodecDecoderRenderer decoderRenderer;
     private boolean reportedCrash;
@@ -287,6 +299,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         notificationOverlayView = findViewById(R.id.notificationOverlay);
 
         performanceOverlayView = findViewById(R.id.performanceOverlay);
+        syncingOverlayView = findViewById(R.id.strmqtSyncingOverlay);
 
         inputCaptureProvider = InputCaptureManager.getInputCaptureProvider(this, this);
 
@@ -508,6 +521,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (hostClock != null) {
             timeResponder = TimeResponder.start(TimeResponder.PORT);
             playTogether = PlayTogether.forStream(new StrmQtPrefs(this));
+            if (playTogether != null) {
+                syncingOverlayView.post(syncingCheck);
+            }
         }
         keyboardTranslator = new KeyboardTranslator();
 
@@ -1072,6 +1088,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         if (playTogether != null) {
             playTogether.stop();
+            syncingOverlayView.removeCallbacks(syncingCheck);
         }
         if (controllerHandler != null) {
             controllerHandler.destroy();
