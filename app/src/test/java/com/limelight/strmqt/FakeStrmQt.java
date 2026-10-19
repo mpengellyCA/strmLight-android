@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
+import java.net.BindException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -129,8 +130,7 @@ final class FakeStrmQt {
     /** @param tokens the paired devices, kept across a restart by passing the old server's set */
     FakeStrmQt(Identity identity, int port, Set<String> tokens) throws IOException {
         this.tokens = tokens;
-        listener = (SSLServerSocket) identity.context.getServerSocketFactory()
-                .createServerSocket(port, 16, InetAddress.getByName("127.0.0.1"));
+        listener = listen(identity, port);
         Thread accept = new Thread(() -> {
             while (true) {
                 final Socket socket;
@@ -147,6 +147,28 @@ final class FakeStrmQt {
         }, "FakeStrmQt accept");
         accept.setDaemon(true);
         accept.start();
+    }
+
+    /**
+     * A server started again takes its old port back. Something else can be given that port
+     * for a moment after the old server closes it, so it is tried again for a while.
+     */
+    private static SSLServerSocket listen(Identity identity, int port) throws IOException {
+        long giveUpAt = System.currentTimeMillis() + 5000;
+        while (true) {
+            try {
+                return (SSLServerSocket) identity.context.getServerSocketFactory()
+                        .createServerSocket(port, 16, InetAddress.getByName("127.0.0.1"));
+            } catch (BindException e) {
+                if (port == 0 || System.currentTimeMillis() > giveUpAt)
+                    throw e;
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException interrupted) {
+                    throw e;
+                }
+            }
+        }
     }
 
     int port() {
